@@ -28,6 +28,7 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  font-family: 'Inter', sans-serif;
 }
 
 h1 {
@@ -76,4 +77,22 @@ button:focus-visible {
   button {
     background-color: #f9f9f9;
   }
+}
+
+.menu-item {
+  display: block;
+  padding: 10px 14px;
+  border-radius: 8px;
+  color: #000;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.menu-item:hover {
+  background-color: #e0e0e0;
+}
+
+.router-link-exact-active {
+  background-color: #026766;
+  color: #fff !important;
 }

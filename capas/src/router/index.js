@@ -7,6 +7,8 @@ import BulkingInput from '../pages/storage/BulkingInput.vue'
 import FileUpload from '../pages/storage/FileUpload.vue'
 import MHECalculation from '../pages/MHECalculation.vue'
 import ManpowerCalculation from '../pages/ManpowerCalculation.vue'
+import LIBased from '../pages/manpower/LIBased.vue'
+import ActivityBased from '../pages/manpower/ActivityBased.vue'
 import History from '../pages/History.vue'
 
 const routes = [
@@ -19,6 +21,7 @@ const routes = [
         name: 'Dashboard',
         component: Dashboard,
       },
+
       {
         path: 'storage',
         name: 'Storage',
@@ -34,16 +37,29 @@ const routes = [
           },
         ],
       },
+
       {
         path: 'mhe',
         name: 'MHE',
         component: MHECalculation,
       },
+
       {
         path: 'manpower',
         name: 'Manpower',
         component: ManpowerCalculation,
+        children: [
+          {
+            path: 'li',
+            component: LIBased,
+          },
+          {
+            path: 'activity',
+            component: ActivityBased,
+          },
+        ],
       },
+
       {
         path: 'history',
         name: 'History',
