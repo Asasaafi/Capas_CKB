@@ -1,3 +1,129 @@
+<script setup>
+import { ref, nextTick } from 'vue'
+import { useRouter } from "vue-router"
+
+const router = useRouter()
+const showResult = ref(false)
+const resultSection = ref(null)
+const bulkSection = ref(null)
+
+const initialFormState = {
+  numberParts: '',
+  totalGoods: '',
+  weightPerItem: '',
+  length: '',
+  width: '',
+  height: '',
+  maxStacking: '',
+  palletSize: '',
+  gangway: ''
+}
+
+const form = ref({ ...initialFormState })
+
+const result = ref({
+  itemsPerPallet: '',
+  totalPallets: '',
+  floorPositions: '',
+  netArea: '',
+  gangwayArea: '',
+  totalArea: ''
+})
+
+function warehouseCalculation(data) {
+  const {
+    totalGoods,
+    weightPerItem,
+    length,
+    width,
+    height,
+    maxStacking,
+    palletSize,
+    gangway
+  } = data
+
+  const inputs = [
+    totalGoods,
+    weightPerItem,
+    length,
+    width,
+    height,
+    maxStacking,
+    palletSize
+  ]
+
+  const totalGoodsKg = totalGoods * 1000
+  const totalItems = totalGoodsKg / weightPerItem
+
+  const lengthM = length / 100
+  const widthM = width / 100
+
+  const palletLength = 1.2
+  const palletWidth = 1.2
+  const palletArea = palletLength * palletWidth
+
+  const maxPalletLoadKg = 800
+
+  const itemFootprint = lengthM * widthM
+
+  const maxItemsByWeight = maxPalletLoadKg / weightPerItem
+  const maxItemsByArea = palletArea / itemFootprint
+
+  const itemsPerPallet = Math.floor(Math.min(maxItemsByWeight, maxItemsByArea))
+
+  if (itemsPerPallet <= 0) {
+    alert("Item size is too large for the pallet")
+    return null
+  }
+
+  const totalPallets = totalItems / itemsPerPallet
+  const floorPositions = totalPallets / maxStacking
+
+  const netArea = floorPositions * palletArea
+  const gangwayArea = netArea * (gangway / 100)
+  const totalArea = netArea + gangwayArea
+
+  return {
+    itemsPerPallet: itemsPerPallet,
+    totalPallets: Number(totalPallets.toFixed(2)),
+    floorPositions: Number(floorPositions.toFixed(2)),
+    netArea: Number(netArea.toFixed(2)),
+    gangwayArea: Number(gangwayArea.toFixed(2)),
+    totalArea: Number(totalArea.toFixed(2))
+  }
+}
+
+const calculate = async () => {
+  const computed = warehouseCalculation(form.value)
+
+  if (!computed) return
+
+  result.value = computed
+
+  showResult.value = true
+  await nextTick()
+
+  resultSection.value?.scrollIntoView({ behavior: 'smooth' })
+}
+
+const resetForm = async () => {
+  showResult.value = false
+  form.value = { ...initialFormState }
+
+  result.value = {
+    itemsPerPallet: '',
+    totalPallets: '',
+    floorPositions: '',
+    netArea: '',
+    gangwayArea: '',
+    totalArea: ''
+  }
+
+  await nextTick()
+  bulkSection.value?.scrollIntoView({ behavior: 'smooth' })
+}
+</script>
+
 <template>
   <div class="container">
     <h1>Bulk Calculation</h1>
@@ -10,28 +136,50 @@
       <input v-model="form.numberParts" placeholder="e.g. 2530-01-244443" />
 
       <label>Total Goods (tons)</label>
-      <input v-model.number="form.totalGoods" placeholder="e.g. 500" />
+      <input type="number" v-model.number="form.totalGoods" placeholder="e.g. 500" />
 
-      <div class="row">
+      <label>Weight Per Item (kg)</label>
+      <input type="number" v-model.number="form.weightPerItem" placeholder="e.g. 25" />
+
+      <label>Item Dimensions</label>
+
+      <div class="dimension-row">
         <div class="field">
-          <label>Weight Per Item (kg)</label>
-          <input v-model.number="form.weightPerItem" placeholder="e.g. 5" />
+          <label>Length (cm)</label>
+          <input
+            type="number"
+            v-model.number="form.length"
+            placeholder="e.g. 40"
+          />
         </div>
 
         <div class="field">
-          <label>Volume Per Item (m³)</label>
-          <input v-model.number="form.volumePerItem" placeholder="e.g. 0.03" />
+          <label>Width (cm)</label>
+          <input
+            type="number"
+            v-model.number="form.width"
+            placeholder="e.g. 30"
+          />
+        </div>
+
+        <div class="field">
+          <label>Height (cm)</label>
+          <input
+            type="number"
+            v-model.number="form.height"
+            placeholder="e.g. 25"
+          />
         </div>
       </div>
 
       <label>Max Pallet Stacking</label>
-      <input v-model.number="form.maxStacking" placeholder="e.g. 3" />
+      <input type="number" v-model.number="form.maxStacking" placeholder="e.g. 3" />
 
       <label>Pallet Size (m²)</label>
-      <input v-model.number="form.palletSize" placeholder="e.g. 1.44" />
+      <input type="number" step="0.01" v-model.number="form.palletSize" placeholder="e.g. 1.44" />
 
       <label>Gangway Allowance (%)</label>
-      <input v-model.number="form.gangway" placeholder="e.g. 30" />
+      <input type="number" v-model.number="form.gangway" placeholder="e.g. 30" />
 
       <button class="btn" @click="calculate">
         Calculate Prediction
@@ -42,6 +190,9 @@
       <h3>Calculation Result</h3>
 
       <div class="result-group">
+        <label>Derived Items per Pallet</label>
+        <input :value="result.itemsPerPallet" readonly />
+
         <label>Total Pallets</label>
         <input :value="result.totalPallets" readonly />
 
@@ -62,118 +213,13 @@
         Try Again
       </button>
     </div>
+
+  </div>
+
+  <div class="help-button" @click="$router.push('/storage')">
+    ?
   </div>
 </template>
-
-<script setup>
-import { ref, nextTick } from 'vue'
-
-const showResult = ref(false)
-const resultSection = ref(null)
-const bulkSection = ref(null)
-
-const initialFormState = {
-  numberParts: '',
-  totalGoods: '',
-  weightPerItem: '',
-  volumePerItem: '',
-  maxStacking: '',
-  palletSize: '',
-  gangway: ''
-}
-
-const form = ref({ ...initialFormState })
-
-const result = ref({
-  totalPallets: '',
-  floorPositions: '',
-  netArea: '',
-  gangwayArea: '',
-  totalArea: ''
-})
-
-function warehouseCalculation(data) {
-
-  const {
-    totalGoods,
-    weightPerItem,
-    volumePerItem,
-    maxStacking,
-    palletSize,
-    gangway
-  } = data
-
-  const inputs = [
-    totalGoods,
-    weightPerItem,
-    volumePerItem,
-    maxStacking,
-    palletSize
-  ]
-
-  if (inputs.some(x => !x || x <= 0)) {
-    alert("Semua input harus lebih dari 0")
-    return null
-  }
-
-  const totalGoodsKg = totalGoods * 1000
-  const totalItems = totalGoodsKg / weightPerItem
-
-  // asumsi sederhana:
-  // (rule-based)
-  const palletVolumeCapacity = 1.5
-  const itemsPerPallet = Math.floor(palletVolumeCapacity / volumePerItem)
-
-  if (itemsPerPallet <= 0) {
-    alert("Volume barang terlalu besar untuk pallet")
-    return null
-  }
-
-  const totalPallets = totalItems / itemsPerPallet
-  const floorPositions = totalPallets / maxStacking
-  const netArea = floorPositions * palletSize
-  const gangwayArea = netArea * (gangway / 100)
-  const totalArea = netArea + gangwayArea
-
-  return {
-    totalPallets: totalPallets.toFixed(2),
-    floorPositions: floorPositions.toFixed(2),
-    netArea: netArea.toFixed(2),
-    gangwayArea: gangwayArea.toFixed(2),
-    totalArea: totalArea.toFixed(2)
-  }
-}
-
-const calculate = async () => {
-
-  const computed = warehouseCalculation(form.value)
-
-  if (!computed) return
-
-  result.value = computed
-
-  showResult.value = true
-  await nextTick()
-
-  resultSection.value?.scrollIntoView({ behavior: 'smooth' })
-}
-
-const resetForm = async () => {
-  showResult.value = false
-  form.value = { ...initialFormState }
-
-  result.value = {
-    totalPallets: '',
-    floorPositions: '',
-    netArea: '',
-    gangwayArea: '',
-    totalArea: ''
-  }
-
-  await nextTick()
-  bulkSection.value?.scrollIntoView({ behavior: 'smooth' })
-}
-</script>
 
 <style scoped>
 .container {
@@ -187,6 +233,12 @@ h1 {
 p {
   margin-bottom: 20px;
   color: #555;
+}
+
+.dimension-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 15px;
 }
 
 .card {
@@ -258,9 +310,34 @@ input:focus {
   margin-bottom: 12px;
 }
 
+.help-button{
+  position:fixed;
+  bottom:30px;
+  right:30px;
+
+  width:50px;
+  height:50px;
+
+  background:#026766;
+  color:white;
+
+  border-radius:50%;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  font-size:24px;
+  font-weight:bold;
+
+  cursor:pointer;
+
+  box-shadow:0 6px 12px rgba(0,0,0,0.2);
+}
+
 @media (max-width: 768px) {
-  .row {
-    flex-direction: column;
+  .dimension-row {
+    grid-template-columns: 1fr;
   }
 }
 

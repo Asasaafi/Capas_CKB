@@ -1,7 +1,9 @@
 <script setup>
 import { ref } from 'vue'
 import { saveAs } from 'file-saver'
+import { useRouter } from "vue-router"
 
+const router = useRouter()
 const step1 = new URL('../../assets/step1.png', import.meta.url).href
 const step2 = new URL('../../assets/step2.png', import.meta.url).href
 const step3 = new URL('../../assets/step3.png', import.meta.url).href
@@ -46,7 +48,7 @@ const calculatePrediction = async () => {
     })
     const data = await response.json()
 
-    console.log("Response dari backend:", data)
+    console.log("Backend Response:", data)
 
     predictions.value = data.predictions
     alert("Prediction success!")
@@ -54,6 +56,10 @@ const calculatePrediction = async () => {
     console.error("Upload error:", error)
     alert("Prediction failed!")
   }
+}
+
+const goToStorage = () => {
+  router.push("/storage")
 }
 
 const downloadResult = () => {
@@ -147,6 +153,46 @@ const downloadResult = () => {
       </button>
     </div>
   </div>
+
+  <div v-if="predictions.length > 0" class="preview-box">
+  <h3>Preview Result</h3>
+
+  <div class="preview-table">
+    <table>
+      <thead>
+        <tr>
+          <th>Part Number</th>
+          <th>Quantity</th>
+          <th>Weight (kg)</th>
+          <th>Growth Indicator</th>
+          <th>Dimension (cm)</th>
+          <th>Storage Type</th>
+          <th>Level</th>
+          <th>Units Needed</th>
+          <th>Total Cost</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr v-for="(row, index) in predictions.slice(0, 20)" :key="index">
+          <td>{{ row["Part Number"] }}</td>
+          <td>{{ row["Quantity"] }}</td>
+          <td>{{ row["Weight (kg)"] }}</td>
+          <td>{{ row["Growth Indicator"] }}</td>
+          <td>{{ row["Dimension (cm)"] }}</td>
+          <td>{{ row["Storage Type"] }}</td>
+          <td>{{ row["Level"] }}</td>
+          <td>{{ row["Units Needed"] }}</td>
+          <td>{{ row["Total Cost"] }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="help-button" @click="goToStorage">
+  ?
+</div>
 </template>
 
 <style scoped>
@@ -270,6 +316,70 @@ h1 {
   border-radius: 10px;
   padding: 18px;
   border: 1px solid #ddd;
+}
+
+.preview-box {
+  margin-top: 25px;
+}
+
+.preview-box h3 {
+  margin-bottom: 10px;
+}
+
+.preview-table {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.preview-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.preview-table th {
+  background: #026766;
+  color: white;
+  position: sticky;
+  top: 0;
+}
+
+.preview-table th,
+.preview-table td {
+  padding: 8px;
+  border-bottom: 1px solid #eee;
+  text-align: center;
+}
+
+.preview-table tr:hover {
+  background: #f5f5f5;
+}
+
+.help-button{
+  position:fixed;
+  bottom:30px;
+  right:30px;
+
+  width:50px;
+  height:50px;
+
+  background:#026766;
+  color:white;
+
+  border-radius:50%;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  font-size:24px;
+  font-weight:bold;
+
+  cursor:pointer;
+
+  box-shadow:0 6px 12px rgba(0,0,0,0.2);
 }
 
 .no-file {

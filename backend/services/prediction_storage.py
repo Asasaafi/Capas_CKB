@@ -8,7 +8,6 @@ model = model_bundle["model"]
 encoder = model_bundle["encoder"]
 features = model_bundle["features"]
 
-# STORAGE RULES & PRICE
 STORAGE_RULES = {
     "CABINET": [("LEVEL I", 0.0009), ("LEVEL G & H", 0.00158), ("LEVEL E & F", 0.00225),
                 ("LEVEL C & D", 0.00535), ("LEVEL B", 0.00725), ("LEVEL A", 0.00949)],
@@ -17,27 +16,40 @@ STORAGE_RULES = {
     "RACKING": [("PALLET", 1.44)],
     "FLOOR": [("FLOOR AREA", 1.44)]
 }
-STORAGE_PRICE = {"CABINET": 6500000, "SHELVING": 4500000, "RACKING": 2800000, "FLOOR": 0}
 
-# COST FUNCTION
+STORAGE_PRICE = {
+    "CABINET": 6500000,
+    "SHELVING": 4500000,
+    "RACKING": 2800000,
+    "FLOOR": 0
+}
+
 def calculate_cost(storage, volume_per_item, total_volume):
     storage = str(storage).upper()
+
     if storage not in STORAGE_RULES:
         return "-", 0, 0
+
     levels = STORAGE_RULES[storage]
+
     selected_level, level_volume = None, None
+
     for level_name, capacity in levels:
         if volume_per_item <= capacity:
-            selected_level, level_volume = level_name, capacity
+            selected_level = level_name
+            level_volume = capacity
             break
+
     if selected_level is None:
         selected_level, level_volume = levels[-1]
+
     required_units = math.ceil(total_volume / level_volume)
     total_cost = required_units * STORAGE_PRICE[storage]
+
     return selected_level, required_units, total_cost
 
-# MAIN PREDICTION
 def predict_storage(df: pd.DataFrame):
+
     df = df.dropna(how="all")
 
     df = df[df["Part Number"].astype(str).str.strip() != ""]
@@ -45,10 +57,16 @@ def predict_storage(df: pd.DataFrame):
 
     df = df.reset_index(drop=True)
 
-    # NUMERIC CLEANING
-    numeric_cols = ["Quantity", "Unit Weight (kg)", "Length (cm)", "Width (cm)", "Height (cm)"]
+    numeric_cols = [
+        "Quantity",
+        "Unit Weight (kg)",
+        "Length (cm)",
+        "Width (cm)",
+        "Height (cm)"
+    ]
 
     for col in numeric_cols:
+
         if col == "Unit Weight (kg)":
             df[col] = df[col].astype(str).str.replace(",", ".")
 
@@ -56,7 +74,6 @@ def predict_storage(df: pd.DataFrame):
 
         df[col] = df[col].fillna(df[col].median())
 
-    # ENCODE GROWTH INDICATOR
     df["Growth Indicator"] = df["Growth Indicator"].astype(str)
 
     most_common_label = encoder.classes_[0]
@@ -68,9 +85,15 @@ def predict_storage(df: pd.DataFrame):
 
     df["Growth_encoded"] = encoder.transform(df["Growth Indicator"])
 
-    # FEATURE ENGINEERING
-    df["Volume_m3"] = df["Length (cm)"] * df["Width (cm)"] * df["Height (cm)"] / 1_000_000
+    # feature
+    df["Volume_m3"] = (
+        df["Length (cm)"] *
+        df["Width (cm)"] *
+        df["Height (cm)"]
+    ) / 1_000_000
+
     df["Total_Volume_m3"] = df["Volume_m3"] * df["Quantity"]
+
     df["Total_Weight_kg"] = df["Unit Weight (kg)"] * df["Quantity"]
 
     df["Density"] = np.where(
@@ -79,7 +102,7 @@ def predict_storage(df: pd.DataFrame):
         0
     )
 
-    # MODEL PREDICTION
+    # model
     X = df[features].copy()
 
     predictions = model.predict(X)
@@ -95,12 +118,20 @@ def predict_storage(df: pd.DataFrame):
 
         level, units, cost = calculate_cost(storage, vol_per_item, total_vol)
 
+        length = df.iloc[i]["Length (cm)"]
+        width = df.iloc[i]["Width (cm)"]
+        height = df.iloc[i]["Height (cm)"]
+
+        dimension_volume = int(length * width * height)
+
         results.append({
             "Part Number": df.iloc[i]["Part Number"],
             "Quantity": df.iloc[i]["Quantity"],
             "Weight (kg)": df.iloc[i]["Unit Weight (kg)"],
             "Growth Indicator": df.iloc[i]["Growth Indicator"],
-            "Dimension (cm)": f'{df.iloc[i]["Length (cm)"]}x{df.iloc[i]["Width (cm)"]}x{df.iloc[i]["Height (cm)"]}',
+
+            "Dimension (cm)": dimension_volume,
+
             "Storage Type": storage,
             "Level": level,
             "Units Needed": units,
@@ -112,7 +143,8 @@ def predict_storage(df: pd.DataFrame):
     for r in results:
         clean_r = {
             k: (
-                0 if isinstance(v, float) and (pd.isna(v) or v == np.inf or v == -np.inf)
+                0 if isinstance(v, float) and
+                (pd.isna(v) or v == np.inf or v == -np.inf)
                 else v
             )
             for k, v in r.items()

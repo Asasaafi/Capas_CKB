@@ -10,34 +10,28 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# === CORS untuk frontend ===
+# CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # frontend Vue-mu
+    allow_origins=["http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# root
 @app.get("/")
 def root():
     return {"message": "Storage Prediction API Running"}
 
-# predict endpoint
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
-    # cek tipe file
     if not (file.filename.endswith(".csv") or file.filename.endswith(".xlsx")):
         raise HTTPException(status_code=400, detail="File harus CSV atau XLSX")
 
     try:
-        # =================== BACA FILE ===================
         if file.filename.endswith(".csv"):
-            # baca CSV, deteksi separator otomatis (tab/koma/titik koma)
             df = pd.read_csv(file.file, sep=None, engine="python")
 
-            # ubah desimal koma menjadi titik
             if "Unit Weight (kg)" in df.columns:
                 df["Unit Weight (kg)"] = (
                     df["Unit Weight (kg)"].astype(str).str.replace(",", ".").astype(float)
@@ -49,7 +43,6 @@ async def predict(file: UploadFile = File(...)):
         else:
             df = pd.read_excel(file.file)
 
-        # =================== CEK KOLM WAJIB ===================
         required_columns = [
             "Part Number", "Quantity", "Unit Weight (kg)",
             "Growth Indicator", "Length (cm)", "Width (cm)", "Height (cm)"
@@ -61,14 +54,11 @@ async def predict(file: UploadFile = File(...)):
                 detail=f"CSV/XLSX missing columns: {missing}"
             )
 
-        # =================== DEBUG ===================
         print("Columns in file:", df.columns.tolist())
         print("First 5 rows:\n", df.head())
 
-        # =================== PREDICTION ===================
         results = predict_storage(df)
 
-        # =================== CLEAN RESULT ===================
         results_safe = []
         for r in results:
             clean_r = {
