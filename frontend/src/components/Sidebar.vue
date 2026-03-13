@@ -1,5 +1,15 @@
 <script setup>
 import logo from '../assets/LOGO.png'
+
+import {
+  LayoutDashboard,
+  Database,
+  Box,
+  Upload,
+  Truck,
+  Users,
+  BarChart3
+} from 'lucide-vue-next'
 </script>
 
 <template>
@@ -15,6 +25,7 @@ import logo from '../assets/LOGO.png'
                     class="menu-item"
                     exact-active-class="router-link-active"
                 >
+                    <LayoutDashboard class="icon"/>
                     Dashboard
                 </router-link>
             </li>
@@ -24,6 +35,7 @@ import logo from '../assets/LOGO.png'
                     to="/storage" 
                     class="menu-item"
                 >
+                    <Database class="icon"/>
                     Storage Calculation
                 </router-link>
 
@@ -33,6 +45,7 @@ import logo from '../assets/LOGO.png'
                             to="/storage/bulking" 
                             class="menu-item"
                         >
+                            <Box class="icon"/>
                             Bulking Input
                         </router-link>
                     </li>
@@ -41,6 +54,7 @@ import logo from '../assets/LOGO.png'
                             to="/storage/upload" 
                             class="menu-item"
                         >
+                            <Upload class="icon"/>
                             File Upload
                         </router-link>
                     </li>
@@ -49,6 +63,7 @@ import logo from '../assets/LOGO.png'
 
             <li>
                 <router-link to="/mhe" class="menu-item">
+                    <Truck class="icon"/>
                     MHE Calculation
                 </router-link>
             </li>
@@ -58,6 +73,7 @@ import logo from '../assets/LOGO.png'
                     to="/manpower" 
                     class="menu-item"
                 >
+                    <Users class="icon"/>
                     Manpower Calculation
                 </router-link>
 
@@ -67,6 +83,7 @@ import logo from '../assets/LOGO.png'
                             to="/manpower/li" 
                             class="menu-item"
                         >
+                            <BarChart3 class="icon"/>
                             LI-Based
                         </router-link>
                     </li>
@@ -75,17 +92,13 @@ import logo from '../assets/LOGO.png'
                             to="/manpower/activity" 
                             class="menu-item"
                         >
+                            <BarChart3 class="icon"/>
                             Activity-Based
                         </router-link>
                     </li>
                 </ul>
             </li>
 
-            <!-- <li>
-                <router-link to="/history" class="menu-item">
-                    History
-                </router-link>
-            </li> -->
         </ul>
     </div>
 </template>
@@ -115,18 +128,25 @@ ul {
     padding: 0;
     margin: 0;
 }
-
+   
 li {
     margin: 6px 0;
 }
 
 .menu-item {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 10px;
     padding: 10px 14px;
     border-radius: 8px;
     text-decoration: none;
     color: #000;
     transition: all 0.2s ease;
+}
+
+.icon{
+    width:18px;
+    height:18px;
 }
 
 .menu-item:hover {

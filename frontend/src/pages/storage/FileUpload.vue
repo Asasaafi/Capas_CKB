@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { saveAs } from 'file-saver'
 import { useRouter } from "vue-router"
 
@@ -79,6 +79,35 @@ const downloadResult = () => {
   const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' })
   saveAs(blob, 'predictions.csv')
 }
+
+const storageSummary = computed(() => {
+
+  const summary = {}
+
+  predictions.value.forEach(item => {
+
+    const type = item["Storage Type"]
+    const level = item["Level"]
+
+    const key = `${type}-${level}`
+
+    if (!summary[key]) {
+      summary[key] = {
+        storageType: type,
+        level: level,
+        units: 0,
+        cost: 0
+      }
+    }
+
+    summary[key].units += Number(item["Units Needed"] || 0)
+    summary[key].cost += Number(item["Total Cost"] || 0)
+
+  })
+
+  return Object.values(summary)
+
+})
 </script>
 
 <template>
@@ -126,6 +155,7 @@ const downloadResult = () => {
           </div>
         </div>
         <button class="primary-btn" @click="openBrowser">Open Browser</button>
+
         <input
           type="file"
           ref="fileInput"
@@ -139,60 +169,106 @@ const downloadResult = () => {
     <div class="upload-box">
       <div>
         <p class="no-file">{{ selectedFileName }}</p>
-        <small></small>
       </div>
+
       <button class="primary-btn browser-btn" @click="calculatePrediction">
         Calculate Prediction
       </button>
     </div>
 
     <div v-if="predictions.length > 0" class="download-box">
-      <p class="download-text">File processed successfully! {{ predictions.length }} items have been calculated.</p>
+      <p class="download-text">
+        File processed successfully! {{ predictions.length }} items have been calculated.
+      </p>
+
       <button class="primary-btn" @click="downloadResult">
         Download Result
       </button>
     </div>
+
+    <!-- STORAGE SUMMARY TABLE -->
+    <div v-if="storageSummary.length > 0" class="summary-table-box">
+
+      <h3>Storage Requirement Summary</h3>
+
+      <table class="summary-table">
+
+        <thead>
+          <tr>
+            <th>Storage Type</th>
+            <th>Level</th>
+            <th>Total Units Needed</th>
+            <th>Total Cost</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          <tr v-for="(row,index) in storageSummary" :key="index">
+
+            <td>{{ row.storageType }}</td>
+            <td>{{ row.level }}</td>
+            <td>{{ row.units }}</td>
+            <td>Rp {{ row.cost.toLocaleString() }}</td>
+
+          </tr>
+
+        </tbody>
+
+      </table>
+
+    </div>
+
   </div>
 
   <div v-if="predictions.length > 0" class="preview-box">
-  <h3>Preview Result</h3>
 
-  <div class="preview-table">
-    <table>
-      <thead>
-        <tr>
-          <th>Part Number</th>
-          <th>Quantity</th>
-          <th>Weight (kg)</th>
-          <th>Growth Indicator</th>
-          <th>Dimension (cm)</th>
-          <th>Storage Type</th>
-          <th>Level</th>
-          <th>Units Needed</th>
-          <th>Total Cost</th>
-        </tr>
-      </thead>
+    <h3>Preview Result</h3>
 
-      <tbody>
-        <tr v-for="(row, index) in predictions.slice(0, 20)" :key="index">
-          <td>{{ row["Part Number"] }}</td>
-          <td>{{ row["Quantity"] }}</td>
-          <td>{{ row["Weight (kg)"] }}</td>
-          <td>{{ row["Growth Indicator"] }}</td>
-          <td>{{ row["Dimension (cm)"] }}</td>
-          <td>{{ row["Storage Type"] }}</td>
-          <td>{{ row["Level"] }}</td>
-          <td>{{ row["Units Needed"] }}</td>
-          <td>{{ row["Total Cost"] }}</td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="preview-table">
+      <table>
+
+        <thead>
+          <tr>
+            <th>Part Number</th>
+            <th>Quantity</th>
+            <th>Weight (kg)</th>
+            <th>Growth Indicator</th>
+            <th>Dimension (cm)</th>
+            <th>Storage Type</th>
+            <th>Level</th>
+            <th>Units Needed</th>
+            <th>Total Cost</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          <tr v-for="(row, index) in predictions.slice(0,20)" :key="index">
+
+            <td>{{ row["Part Number"] }}</td>
+            <td>{{ row["Quantity"] }}</td>
+            <td>{{ row["Weight (kg)"] }}</td>
+            <td>{{ row["Growth Indicator"] }}</td>
+            <td>{{ row["Dimension (cm)"] }}</td>
+            <td>{{ row["Storage Type"] }}</td>
+            <td>{{ row["Level"] }}</td>
+            <td>{{ row["Units Needed"] }}</td>
+            <td>{{ row["Total Cost"] }}</td>
+
+          </tr>
+
+        </tbody>
+
+      </table>
+    </div>
+
   </div>
-</div>
 
-<div class="help-button" @click="goToStorage">
-  ?
-</div>
+  <div class="help-button" @click="goToStorage">
+    ?
+  </div>
+
 </template>
 
 <style scoped>
@@ -316,6 +392,35 @@ h1 {
   border-radius: 10px;
   padding: 18px;
   border: 1px solid #ddd;
+}
+
+.summary-table-box{
+  margin-top:25px;
+}
+
+.summary-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:13px;
+  border:1px solid #ddd;
+  border-radius:8px;
+  overflow:hidden;
+}
+
+.summary-table th{
+  background:#026766;
+  color:white;
+}
+
+.summary-table th,
+.summary-table td{
+  padding:8px;
+  text-align:center;
+  border-bottom:1px solid #eee;
+}
+
+.summary-table tr:hover{
+  background:#f5f5f5;
 }
 
 .preview-box {
