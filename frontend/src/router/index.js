@@ -8,7 +8,7 @@ import MHECalculation from "../pages/MHECalculation.vue"
 import ManpowerCalculation from "../pages/ManpowerCalculation.vue"
 import LIBased from "../pages/manpower/LIBased.vue"
 import ActivityBased from "../pages/manpower/ActivityBased.vue"
-import History from "../pages/History.vue"
+// import History from "../pages/History.vue"
 
 const routes = [
   {
@@ -62,13 +62,13 @@ const routes = [
         path: "manpower/activity",
         name: "ActivityBased",
         component: ActivityBased
-      },
-
-      {
-        path: "history",
-        name: "History",
-        component: History
       }
+
+      // {
+      //   path: "history",
+      //   name: "History",
+      //   component: History
+      // }
 
     ]
   }

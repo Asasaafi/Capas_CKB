@@ -14,7 +14,6 @@ const goToUpload = () => {
 
 <template>
   <div class="guide-container">
-
     <div class="header">
       <h1>Storage Planning</h1>
       <p>
@@ -25,21 +24,18 @@ const goToUpload = () => {
     </div>
 
     <div class="guide-cards">
-
       <div class="card" @click="goToBulking">
         <div class="card-icon">📦</div>
 
         <h3>Bulk Calculation</h3>
-
         <p>
-          Calculate storage requirements for individual items based on
-          <strong>item dimensions</strong>, <strong>weight</strong>,
-          and <strong>pallet stacking rules</strong>.
+          Estimate pallet usage and warehouse storage area for a single item.
+          Choose between <strong>Items per Pallet</strong> or
+          <strong>Item Dimension</strong> based calculation methods.
         </p>
-
         <ul>
           <li>Manual item input</li>
-          <li>Pallet capacity estimation</li>
+          <li>Items per pallet estimation</li>
           <li>Warehouse area calculation</li>
         </ul>
 
@@ -48,14 +44,11 @@ const goToUpload = () => {
 
       <div class="card" @click="goToUpload">
         <div class="card-icon">📄</div>
-
         <h3>File Upload Calculation</h3>
-
         <p>
           Upload a dataset to automatically calculate storage requirements
           for multiple items using predefined templates.
         </p>
-
         <ul>
           <li>Download Excel template</li>
           <li>Upload item dataset</li>
@@ -64,9 +57,7 @@ const goToUpload = () => {
 
         <span class="card-action">Start Calculation →</span>
       </div>
-
     </div>
-
   </div>
 </template>
 
@@ -106,14 +97,10 @@ const goToUpload = () => {
   background:white;
   width:420px;
   padding:30px;
-
   border-radius:12px;
   border:1px solid #e6e6e6;
-
   box-shadow:0 6px 18px rgba(0,0,0,0.05);
-
   cursor:pointer;
-
   transition:0.25s;
 }
 

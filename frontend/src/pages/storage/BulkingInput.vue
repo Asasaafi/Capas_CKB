@@ -2,121 +2,126 @@
 import { ref, nextTick } from 'vue'
 import { useRouter } from "vue-router"
 
-const router = useRouter()
-const showResult = ref(false)
+const router        = useRouter()
+const showResult    = ref(false)
 const resultSection = ref(null)
-const bulkSection = ref(null)
+const bulkSection   = ref(null)
 
 const initialFormState = {
-  numberParts: '',
-  totalGoods: '',
-  weightPerItem: '',
-  length: '',
-  width: '',
-  height: '',
-  maxStacking: '',
-  palletSize: '',
-  gangway: ''
+  numberParts   : '',
+  totalGoods    : '',
+  weightPerItem : '',
+  itemPerPallet : '',
+  length        : '',
+  width         : '',
+  height        : '',
+  maxStacking   : '',
+  gangway       : ''
 }
 
 const form = ref({ ...initialFormState })
 
+const calculationMethod = ref("item")
+
 const result = ref({
-  itemsPerPallet: '',
-  totalPallets: '',
-  floorPositions: '',
-  netArea: '',
-  gangwayArea: '',
-  totalArea: ''
+  itemsPerPallet : '',
+  totalPallets   : '',
+  floorPositions : '',
+  netArea        : '',
+  gangwayArea    : '',
+  totalArea      : ''
 })
 
 function warehouseCalculation(data) {
   const {
     totalGoods,
     weightPerItem,
+    itemPerPallet,
     length,
     width,
     height,
     maxStacking,
-    palletSize,
     gangway
   } = data
 
-  const inputs = [
-    totalGoods,
-    weightPerItem,
-    length,
-    width,
-    height,
-    maxStacking,
-    palletSize
-  ]
-
-  const totalGoodsKg = totalGoods * 1000
-  const totalItems = totalGoodsKg / weightPerItem
-
-  const lengthM = length / 100
-  const widthM = width / 100
-
-  const palletLength = 1.2
-  const palletWidth = 1.2
-  const palletArea = palletLength * palletWidth
-
+  const palletLength    = 1.2
+  const palletWidth     = 1.2
+  const palletArea      = palletLength * palletWidth
   const maxPalletLoadKg = 800
 
-  const itemFootprint = lengthM * widthM
+  const totalGoodsKg = totalGoods * 1000
+  const totalItems   = totalGoodsKg / weightPerItem
 
-  const maxItemsByWeight = maxPalletLoadKg / weightPerItem
-  const maxItemsByArea = palletArea / itemFootprint
+  let itemsPerPallet = 0
 
-  const itemsPerPallet = Math.floor(Math.min(maxItemsByWeight, maxItemsByArea))
-
-  if (itemsPerPallet <= 0) {
-    alert("Item size is too large for the pallet")
-    return null
+  if (calculationMethod.value === "item") {
+    if (!itemPerPallet || itemPerPallet <= 0) {
+      alert("Items per pallet must be greater than 0")
+      return null
+    }
+    itemsPerPallet = itemPerPallet
   }
 
-  const totalPallets = totalItems / itemsPerPallet
+  if (calculationMethod.value === "dimension") {
+    if (!length || !width) {
+      alert("Length and width must be filled")
+      return null
+    }
+
+    const lengthM = length / 100
+    const widthM  = width / 100
+
+    const maxItemsByWeight = maxPalletLoadKg / weightPerItem
+    const maxItemsByArea   = palletArea / (lengthM * widthM)
+
+    itemsPerPallet = Math.floor(Math.min(maxItemsByWeight, maxItemsByArea))
+
+    if (itemsPerPallet <= 0) {
+      alert("Item size is too large for the pallet")
+      return null
+    }
+  }
+
+  const totalPallets   = totalItems / itemsPerPallet
   const floorPositions = totalPallets / maxStacking
 
-  const netArea = floorPositions * palletArea
+  const netArea     = floorPositions * palletArea
   const gangwayArea = netArea * (gangway / 100)
-  const totalArea = netArea + gangwayArea
+  const totalArea   = netArea + gangwayArea
 
   return {
-    itemsPerPallet: itemsPerPallet,
-    totalPallets: Number(totalPallets.toFixed(2)),
-    floorPositions: Number(floorPositions.toFixed(2)),
-    netArea: Number(netArea.toFixed(2)),
-    gangwayArea: Number(gangwayArea.toFixed(2)),
-    totalArea: Number(totalArea.toFixed(2))
+    itemsPerPallet,
+    totalPallets   : Number(totalPallets.toFixed(2)),
+    floorPositions : Number(floorPositions.toFixed(2)),
+    netArea        : Number(netArea.toFixed(2)),
+    gangwayArea    : Number(gangwayArea.toFixed(2)),
+    totalArea      : Number(totalArea.toFixed(2))
   }
 }
 
 const calculate = async () => {
   const computed = warehouseCalculation(form.value)
-
   if (!computed) return
 
-  result.value = computed
-
+  result.value     = computed
   showResult.value = true
-  await nextTick()
 
+  await nextTick()
   resultSection.value?.scrollIntoView({ behavior: 'smooth' })
 }
 
 const resetForm = async () => {
-  showResult.value = false
-  form.value = { ...initialFormState }
+  showResult.value       = false
+  form.value             = { ...initialFormState }
+  calculationMethod.value = "item"
 
   result.value = {
-    itemsPerPallet: '',
-    totalPallets: '',
-    floorPositions: '',
-    netArea: '',
-    gangwayArea: '',
-    totalArea: ''
+    itemsPerPallet : '',
+    totalPallets   : '',
+    floorPositions : '',
+    netArea        : '',
+    gangwayArea    : '',
+    totalArea      : ''
   }
 
   await nextTick()
@@ -136,20 +141,33 @@ const resetForm = async () => {
       <input v-model="form.numberParts" placeholder="e.g. 2530-01-244443" />
 
       <label>Total Goods (tons)</label>
-      <input type="number" v-model.number="form.totalGoods" placeholder="e.g. 500" />
+      <input type="number" v-model.number="form.totalGoods" placeholder="e.g. 2100" />
 
       <label>Weight Per Item (kg)</label>
       <input type="number" v-model.number="form.weightPerItem" placeholder="e.g. 25" />
 
-      <label>Item Dimensions</label>
+      <label>Calculation Method</label>
+      <select v-model="calculationMethod">
+        <option value="item">Items per Pallet</option>
+        <option value="dimension">Item Dimensions</option>
+      </select>
 
-      <div class="dimension-row">
+      <div v-if="calculationMethod === 'item'">
+        <label>Items per Pallet</label>
+        <input
+          type="number"
+          v-model.number="form.itemPerPallet"
+          placeholder="e.g. 20"
+        />
+      </div>
+
+      <div v-if="calculationMethod === 'dimension'" class="dimension-row">
         <div class="field">
           <label>Length (cm)</label>
           <input
             type="number"
             v-model.number="form.length"
-            placeholder="e.g. 40"
+            placeholder="e.g. 60"
           />
         </div>
 
@@ -158,7 +176,7 @@ const resetForm = async () => {
           <input
             type="number"
             v-model.number="form.width"
-            placeholder="e.g. 30"
+            placeholder="e.g. 14"
           />
         </div>
 
@@ -167,19 +185,24 @@ const resetForm = async () => {
           <input
             type="number"
             v-model.number="form.height"
-            placeholder="e.g. 25"
+            placeholder="e.g. 7"
           />
         </div>
       </div>
 
       <label>Max Pallet Stacking</label>
-      <input type="number" v-model.number="form.maxStacking" placeholder="e.g. 3" />
-
-      <label>Pallet Size (m²)</label>
-      <input type="number" step="0.01" v-model.number="form.palletSize" placeholder="e.g. 1.44" />
+      <input
+        type="number"
+        v-model.number="form.maxStacking"
+        placeholder="e.g. 2"
+      />
 
       <label>Gangway Allowance (%)</label>
-      <input type="number" v-model.number="form.gangway" placeholder="e.g. 30" />
+      <input
+        type="number"
+        v-model.number="form.gangway"
+        placeholder="e.g. 30"
+      />
 
       <button class="btn" @click="calculate">
         Calculate Prediction
@@ -190,7 +213,7 @@ const resetForm = async () => {
       <h3>Calculation Result</h3>
 
       <div class="result-group">
-        <label>Derived Items per Pallet</label>
+        <label>Items per Pallet</label>
         <input :value="result.itemsPerPallet" readonly />
 
         <label>Total Pallets</label>
@@ -213,7 +236,6 @@ const resetForm = async () => {
         Try Again
       </button>
     </div>
-
   </div>
 
   <div class="help-button" @click="$router.push('/storage')">
@@ -258,7 +280,8 @@ label {
   margin: 8px 0 4px;
 }
 
-input {
+input,
+select {
   width: 100%;
   padding: 8px 10px;
   margin-bottom: 12px;
@@ -267,15 +290,11 @@ input {
   box-sizing: border-box;
 }
 
-input:focus {
+input:focus,
+select:focus {
   outline: none;
   border-color: #026766;
   box-shadow: 0 0 0 2px rgba(2,103,102,0.1);
-}
-
-.row {
-  display: flex;
-  gap: 15px;
 }
 
 .field {
@@ -292,7 +311,6 @@ input:focus {
   margin-top: 10px;
   cursor: pointer;
   font-weight: 500;
-  transition: 0.2s;
 }
 
 .btn:hover {
@@ -303,36 +321,25 @@ input:focus {
   max-width: 600px;
   margin: 40px auto;
   padding: 10px;
-  animation: fadeIn 0.4s ease-in-out;
+  animation: fadeIn .4s ease-in-out;
 }
 
-.result-group input {
-  margin-bottom: 12px;
-}
-
-.help-button{
-  position:fixed;
-  bottom:30px;
-  right:30px;
-
-  width:50px;
-  height:50px;
-
-  background:#026766;
-  color:white;
-
-  border-radius:50%;
-
-  display:flex;
-  align-items:center;
-  justify-content:center;
-
-  font-size:24px;
-  font-weight:bold;
-
-  cursor:pointer;
-
-  box-shadow:0 6px 12px rgba(0,0,0,0.2);
+.help-button {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 50px;
+  height: 50px;
+  background: #026766;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 6px 12px rgba(0,0,0,0.2);
 }
 
 @media (max-width: 768px) {

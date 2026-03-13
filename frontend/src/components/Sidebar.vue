@@ -81,11 +81,11 @@ import logo from '../assets/LOGO.png'
                 </ul>
             </li>
 
-            <li>
+            <!-- <li>
                 <router-link to="/history" class="menu-item">
                     History
                 </router-link>
-            </li>
+            </li> -->
         </ul>
     </div>
 </template>
