@@ -45,7 +45,7 @@ const goToActivity = () => router.push("/manpower/activity")
         <h3>LI-Based Calculation</h3>
         <p>
           Estimate manpower requirements based on the total
-          <strong>Line Items (LI)</strong> handled in warehouse operations.
+          <strong>Line Items (LI)</strong> handled in warehouse <strong class="">Part Management</strong> operations.
           Suitable for quick workload estimation when total handling volume is known.
         </p>
 

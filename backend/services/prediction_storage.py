@@ -18,10 +18,10 @@ STORAGE_RULES = {
 }
 
 STORAGE_PRICE = {
-    "CABINET": 6500000,
-    "SHELVING": 4500000,
-    "RACKING": 2800000,
-    "FLOOR": 0
+    "CABINET": 571000,
+    "SHELVING": 600000,
+    "RACKING": 650000,
+    "FLOOR": 700000
 }
 
 def calculate_cost(storage, volume_per_item, total_volume):
