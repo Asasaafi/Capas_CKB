@@ -34,10 +34,8 @@ const calculatePrediction = async () => {
     alert("Please upload file first")
     return
   }
-
   const formData = new FormData()
   formData.append("file", selectedFile.value)
-
   try {
     const response = await fetch("http://127.0.0.1:8000/predict", {
       method: "POST",
@@ -62,7 +60,6 @@ const downloadResult = () => {
     alert("No prediction to download")
     return
   }
-
   const headers = Object.keys(predictions.value[0])
   const csvRows = [
     headers.join(','),
@@ -77,20 +74,16 @@ const downloadResult = () => {
 
 const storageSummary = computed(() => {
   const summary = {}
-
   predictions.value.forEach(item => {
     const type  = item["Storage Type"]
     const level = item["Level"]
     const key   = `${type}-${level}`
-
     if (!summary[key]) {
       summary[key] = { storageType: type, level, units: 0, cost: 0 }
     }
-
     summary[key].units += Number(item["Units Needed"] || 0)
     summary[key].cost  += Number(item["Total Cost"]   || 0)
   })
-
   return Object.values(summary)
 })
 </script>
@@ -153,7 +146,6 @@ const storageSummary = computed(() => {
         </div>
         <p class="step-note">Select your completed file and click Calculate to run the prediction.</p>
         <button class="primary-btn" @click="openBrowser">Browse File</button>
-
         <input
           type="file"
           ref="fileInput"
@@ -194,7 +186,7 @@ const storageSummary = computed(() => {
     <div v-if="storageSummary.length > 0" class="section">
       <p class="section-title">Storage Requirement Summary</p>
       <div class="tbl-wrap">
-        <table class="summary-table">
+        <table>
           <thead>
             <tr>
               <th>Storage Type</th>
@@ -262,13 +254,14 @@ const storageSummary = computed(() => {
 .upload-container {
   padding: 32px 40px;
   max-width: 960px;
+  margin: 0 auto;
 }
 
 h1 {
   font-size: 24px;
   font-weight: 700;
   color: #111;
-  margin-bottom: 20px;
+  margin-bottom: 8px;
 }
 
 p {
@@ -337,6 +330,7 @@ p {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  text-align: left;
 }
 
 .step-num {
@@ -531,7 +525,7 @@ thead tr {
 thead th {
   color: white;
   padding: 10px 14px;
-  text-align: left;
+  text-align: center;
   font-weight: 500;
   font-size: 12px;
   letter-spacing: 0.3px;
@@ -546,6 +540,7 @@ tbody td {
   padding: 10px 14px;
   border-bottom: 1px solid #f0f0f0;
   color: #444;
+  text-align: center;
 }
 
 tbody tr:last-child td {
@@ -559,6 +554,7 @@ tbody tr:hover td {
 .preview-section {
   padding: 0 40px 32px;
   max-width: 960px;
+  margin: 0 auto;
 }
 
 .help-button {
