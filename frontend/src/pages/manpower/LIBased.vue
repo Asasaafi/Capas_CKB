@@ -135,11 +135,11 @@ const resetForm = async () => {
           <input :value="result.totalMain" readonly />
         </div>
         <div class="field">
-          <label>Backup Manpower</label>
+          <label>Backup Manpower (10%)</label>
           <input :value="result.totalBackup" readonly />
         </div>
         <div class="field">
-          <label>Total Manpower</label>
+          <label>Total Manpower </label>
           <input :value="result.totalAll" readonly />
         </div>
       </div>
