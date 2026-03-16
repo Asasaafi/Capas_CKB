@@ -89,10 +89,12 @@ const storageSummary = computed(() => {
 </script>
 
 <template>
-  <div class="upload-container">
-
+  <div class="page-header">
     <h1>File Upload Calculation</h1>
     <p class="subtitle">Upload a CSV or Excel file to calculate storage requirements and cost estimation</p>
+  </div>
+
+  <div class="upload-container">
 
     <div class="steps">
 
@@ -252,9 +254,13 @@ const storageSummary = computed(() => {
 
 <style scoped>
 .upload-container {
-  padding: 32px 40px;
+  padding: 0 40px 32px;
   max-width: 960px;
   margin: 0 auto;
+}
+
+.page-header {
+  padding: 32px 40px 20px;
 }
 
 h1 {
