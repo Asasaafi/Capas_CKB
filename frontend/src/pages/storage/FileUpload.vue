@@ -4,12 +4,9 @@ import { saveAs } from 'file-saver'
 import { useRouter } from "vue-router"
 
 const router = useRouter()
-const step1 = new URL('../../assets/step1.png', import.meta.url).href
-const step2 = new URL('../../assets/step2.png', import.meta.url).href
-const step3 = new URL('../../assets/step3.png', import.meta.url).href
 
 const fileInput = ref(null)
-const selectedFileName = ref('No file uploaded yet')
+const selectedFileName = ref(null)
 const selectedFile = ref(null)
 const predictions = ref([])
 
@@ -47,9 +44,7 @@ const calculatePrediction = async () => {
       body: formData
     })
     const data = await response.json()
-
     console.log("Backend Response:", data)
-
     predictions.value = data.predictions
     alert("Prediction success!")
   } catch (error) {
@@ -81,80 +76,83 @@ const downloadResult = () => {
 }
 
 const storageSummary = computed(() => {
-
   const summary = {}
 
   predictions.value.forEach(item => {
-
-    const type = item["Storage Type"]
+    const type  = item["Storage Type"]
     const level = item["Level"]
-
-    const key = `${type}-${level}`
+    const key   = `${type}-${level}`
 
     if (!summary[key]) {
-      summary[key] = {
-        storageType: type,
-        level: level,
-        units: 0,
-        cost: 0
-      }
+      summary[key] = { storageType: type, level, units: 0, cost: 0 }
     }
 
     summary[key].units += Number(item["Units Needed"] || 0)
-    summary[key].cost += Number(item["Total Cost"] || 0)
-
+    summary[key].cost  += Number(item["Total Cost"]   || 0)
   })
 
   return Object.values(summary)
-
 })
 </script>
 
 <template>
   <div class="upload-container">
-    <h1>Upload File Excel</h1>
-    <p class="subtitle">
-      Upload a CSV file to calculate storage requirements and cost estimation
-    </p>
+
+    <h1>File Upload Calculation</h1>
+    <p class="subtitle">Upload a CSV or Excel file to calculate storage requirements and cost estimation</p>
 
     <div class="steps">
+
       <div class="step-card">
         <div class="step-header">
           <div class="icon-box">
-            <img :src="step1" alt="Step 1" />
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
           </div>
-          <div>
-            <h3>Step 1</h3>
-            <p>Download Template</p>
+          <div class="step-meta">
+            <span class="step-num">Step 01</span>
+            <span class="step-title">Download Template</span>
           </div>
         </div>
+        <p class="step-note">Download the Excel template and use it as your data input format.</p>
         <button class="primary-btn" @click="downloadTemplate">Download Template</button>
       </div>
 
       <div class="step-card">
         <div class="step-header">
           <div class="icon-box">
-            <img :src="step2" alt="Step 2" />
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 20h9"/>
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+            </svg>
           </div>
-          <div>
-            <h3>Step 2</h3>
-            <p>Fill in Item Data</p>
+          <div class="step-meta">
+            <span class="step-num">Step 02</span>
+            <span class="step-title">Fill in Item Data</span>
           </div>
         </div>
-        <p class="step2-note">Open the template and fill in the required columns</p>
+        <p class="step-note">Open the template and fill in the required columns: part number, quantity, weight, Growth Indicator, and dimensions.</p>
       </div>
 
       <div class="step-card">
         <div class="step-header">
           <div class="icon-box">
-            <img :src="step3" alt="Step 3" />
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
           </div>
-          <div>
-            <h3>Step 3</h3>
-            <p>Upload File</p>
+          <div class="step-meta">
+            <span class="step-num">Step 03</span>
+            <span class="step-title">Upload File</span>
           </div>
         </div>
-        <button class="primary-btn" @click="openBrowser">Open Browser</button>
+        <p class="step-note">Select your completed file and click Calculate to run the prediction.</p>
+        <button class="primary-btn" @click="openBrowser">Browse File</button>
 
         <input
           type="file"
@@ -164,70 +162,68 @@ const storageSummary = computed(() => {
           @change="handleFileChange"
         />
       </div>
+
     </div>
 
     <div class="upload-box">
-      <div>
-        <p class="no-file">{{ selectedFileName }}</p>
+      <div class="file-info">
+        <div class="file-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#026766" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+        </div>
+        <div>
+          <div class="file-name">{{ selectedFileName ?? 'No file uploaded yet' }}</div>
+          <div class="file-hint">Accepted formats: .csv, .xlsx</div>
+        </div>
       </div>
-
-      <button class="primary-btn browser-btn" @click="calculatePrediction">
-        Calculate Prediction
-      </button>
+      <button class="calc-btn" @click="calculatePrediction">Calculate Prediction</button>
     </div>
 
-    <div v-if="predictions.length > 0" class="download-box">
-      <p class="download-text">
+    <div v-if="predictions.length > 0" class="success-box">
+      <div class="success-text">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#0f6e56" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
         File processed successfully! {{ predictions.length }} items have been calculated.
-      </p>
-
-      <button class="primary-btn" @click="downloadResult">
-        Download Result
-      </button>
+      </div>
+      <button class="dl-btn" @click="downloadResult">Download Result</button>
     </div>
 
-    <!-- STORAGE SUMMARY TABLE -->
-    <div v-if="storageSummary.length > 0" class="summary-table-box">
-
-      <h3>Storage Requirement Summary</h3>
-
-      <table class="summary-table">
-
-        <thead>
-          <tr>
-            <th>Storage Type</th>
-            <th>Level</th>
-            <th>Total Units Needed</th>
-            <th>Total Cost</th>
-          </tr>
-        </thead>
-
-        <tbody>
-
-          <tr v-for="(row,index) in storageSummary" :key="index">
-
-            <td>{{ row.storageType }}</td>
-            <td>{{ row.level }}</td>
-            <td>{{ row.units }}</td>
-            <td>Rp {{ row.cost.toLocaleString() }}</td>
-
-          </tr>
-
-        </tbody>
-
-      </table>
-
+    <div v-if="storageSummary.length > 0" class="section">
+      <p class="section-title">Storage Requirement Summary</p>
+      <div class="tbl-wrap">
+        <table class="summary-table">
+          <thead>
+            <tr>
+              <th>Storage Type</th>
+              <th>Level</th>
+              <th>Total Units Needed</th>
+              <th>Total Cost</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(row, index) in storageSummary" :key="index">
+              <td>{{ row.storageType }}</td>
+              <td>{{ row.level }}</td>
+              <td>{{ row.units }}</td>
+              <td>Rp {{ row.cost.toLocaleString() }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
   </div>
 
-  <div v-if="predictions.length > 0" class="preview-box">
-
-    <h3>Preview Result</h3>
-
-    <div class="preview-table">
+  <div v-if="predictions.length > 0" class="preview-section">
+    <p class="section-title">
+      Preview Result
+      <span class="section-sub">(showing first 20 rows)</span>
+    </p>
+    <div class="preview-scroll">
       <table>
-
         <thead>
           <tr>
             <th>Part Number</th>
@@ -241,11 +237,8 @@ const storageSummary = computed(() => {
             <th>Total Cost</th>
           </tr>
         </thead>
-
         <tbody>
-
-          <tr v-for="(row, index) in predictions.slice(0,20)" :key="index">
-
+          <tr v-for="(row, index) in predictions.slice(0, 20)" :key="index">
             <td>{{ row["Part Number"] }}</td>
             <td>{{ row["Quantity"] }}</td>
             <td>{{ row["Weight (kg)"] }}</td>
@@ -255,90 +248,158 @@ const storageSummary = computed(() => {
             <td>{{ row["Level"] }}</td>
             <td>{{ row["Units Needed"] }}</td>
             <td>{{ row["Total Cost"] }}</td>
-
           </tr>
-
         </tbody>
-
       </table>
     </div>
-
   </div>
 
-  <div class="help-button" @click="goToStorage">
-    ?
-  </div>
+  <div class="help-button" @click="goToStorage">?</div>
 
 </template>
 
 <style scoped>
 .upload-container {
-  padding: 20px 40px;
+  padding: 32px 40px;
+  max-width: 960px;
 }
 
 h1 {
-  margin-bottom: 8px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #111;
+  margin-bottom: 20px;
 }
 
-.download-box {
-  margin-top: 25px;
-  text-align: center;
-  background: #f7f7f7;
-  border-radius: 10px;
-  padding: 20px;
-}
-
-.download-text {
-  font-weight: 600;
-  color: #026766;
-  margin-bottom: 12px;
+p {
+  margin-bottom: 20px;
+  color: #555;
 }
 
 .subtitle {
   color: #777;
-  margin-bottom: 25px;
+  font-size: 14px;
+  margin-bottom: 28px;
 }
 
 .steps {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-  margin-bottom: 25px;
-  width: 100%;
+  gap: 16px;
+  margin-bottom: 20px;
 }
 
 .step-card {
   background: #fff;
-  border-radius: 12px;
-  padding: 18px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e8e8e8;
+  border-radius: 14px;
+  padding: 22px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  gap: 14px;
+  position: relative;
+  overflow: hidden;
+}
+
+.step-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #026766;
 }
 
 .step-header {
   display: flex;
-  gap: 12px;
-  margin-bottom: 15px;
   align-items: center;
-}
-
-.step-card h3 {
-  margin: 0;
-  font-size: 14px;
-  color: #026766;
-}
-
-.step-card p {
-  margin: 2px 0;
-  font-weight: 600;
+  gap: 14px;
 }
 
 .icon-box {
-  width: 50px;
-  height: 50px;
-  background-color: #026766;
+  width: 46px;
+  height: 46px;
+  background: #026766;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.icon-box svg {
+  width: 22px;
+  height: 22px;
+}
+
+.step-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.step-num {
+  font-size: 11px;
+  font-weight: 600;
+  color: #026766;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.step-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111;
+}
+
+.step-note {
+  font-size: 13px;
+  color: #888;
+  line-height: 1.6;
+  flex: 1;
+}
+
+.primary-btn {
+  background: #026766;
+  color: #fff;
+  border: none;
+  height: 40px;
+  width: 100%;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.primary-btn:hover {
+  background: #014f4e;
+}
+
+.upload-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8f8f8;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 14px 20px;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.file-icon {
+  width: 38px;
+  height: 38px;
+  background: #f0faf9;
+  border: 1px solid #c8e6e5;
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -346,153 +407,181 @@ h1 {
   flex-shrink: 0;
 }
 
-.icon-box img {
-  width: 32px;
-  height: 32px;
-  display: block;
+.file-icon svg {
+  width: 17px;
+  height: 17px;
 }
 
-.step2-note {
-  text-align: center;
+.file-name {
   font-size: 13px;
-  color: #555;
-  margin-top: auto;
-  margin-bottom: 10px;
+  font-weight: 600;
+  color: #444;
 }
 
-.primary-btn {
-  background-color: #026766;
+.file-hint {
+  font-size: 11px;
+  color: #aaa;
+  margin-top: 2px;
+}
+
+.calc-btn {
+  background: #026766;
   color: #fff;
   border: none;
-  height: 42px;
-  width: 90%;
+  height: 40px;
+  padding: 0 24px;
   border-radius: 8px;
   cursor: pointer;
-  transition: 0.2s;
-  display: block;
-  margin: 0 auto;
+  font-size: 13px;
   font-weight: 500;
+  white-space: nowrap;
+  transition: background 0.2s;
+  flex-shrink: 0;
 }
 
-.primary-btn:hover {
-  background-color: #014f4e;
+.calc-btn:hover {
+  background: #014f4e;
 }
 
-.browser-btn {
-  width: 308px;
-  margin-left: 0;
-  margin-right: 11px;
-}
-
-.upload-box {
+.success-box {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #f7f7f7;
-  border-radius: 10px;
-  padding: 18px;
-  border: 1px solid #ddd;
+  background: #f0faf9;
+  border: 1px solid #9fe1cb;
+  border-radius: 12px;
+  padding: 12px 20px;
+  margin-bottom: 20px;
 }
 
-.summary-table-box{
-  margin-top:25px;
+.success-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #0f6e56;
 }
 
-.summary-table{
-  width:100%;
-  border-collapse:collapse;
-  font-size:13px;
-  border:1px solid #ddd;
-  border-radius:8px;
-  overflow:hidden;
+.success-text svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 }
 
-.summary-table th{
-  background:#026766;
-  color:white;
-}
-
-.summary-table th,
-.summary-table td{
-  padding:8px;
-  text-align:center;
-  border-bottom:1px solid #eee;
-}
-
-.summary-table tr:hover{
-  background:#f5f5f5;
-}
-
-.preview-box {
-  margin-top: 25px;
-}
-
-.preview-box h3 {
-  margin-bottom: 10px;
-}
-
-.preview-table {
-  max-height: 300px;
-  overflow-y: auto;
-  border: 1px solid #ddd;
+.dl-btn {
+  background: #026766;
+  color: #fff;
+  border: none;
+  height: 36px;
+  padding: 0 18px;
   border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background 0.2s;
+  flex-shrink: 0;
 }
 
-.preview-table table {
+.dl-btn:hover {
+  background: #014f4e;
+}
+
+.section {
+  margin-bottom: 24px;
+}
+
+.section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111;
+  margin-bottom: 12px;
+}
+
+.section-sub {
+  font-size: 12px;
+  color: #aaa;
+  font-weight: 400;
+  margin-left: 6px;
+}
+
+.tbl-wrap,
+.preview-scroll {
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.preview-scroll {
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+table {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
 }
 
-.preview-table th {
+thead tr {
   background: #026766;
+}
+
+thead th {
   color: white;
+  padding: 10px 14px;
+  text-align: left;
+  font-weight: 500;
+  font-size: 12px;
+  letter-spacing: 0.3px;
+}
+
+.preview-scroll thead th {
   position: sticky;
   top: 0;
 }
 
-.preview-table th,
-.preview-table td {
-  padding: 8px;
-  border-bottom: 1px solid #eee;
-  text-align: center;
+tbody td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f0f0f0;
+  color: #444;
 }
 
-.preview-table tr:hover {
-  background: #f5f5f5;
+tbody tr:last-child td {
+  border-bottom: none;
 }
 
-.help-button{
-  position:fixed;
-  bottom:30px;
-  right:30px;
-
-  width:50px;
-  height:50px;
-
-  background:#026766;
-  color:white;
-
-  border-radius:50%;
-
-  display:flex;
-  align-items:center;
-  justify-content:center;
-
-  font-size:24px;
-  font-weight:bold;
-
-  cursor:pointer;
-
-  box-shadow:0 6px 12px rgba(0,0,0,0.2);
+tbody tr:hover td {
+  background: #f8fffe;
 }
 
-.no-file {
-  font-weight: 600;
+.preview-section {
+  padding: 0 40px 32px;
+  max-width: 960px;
 }
 
-.download-box {
-  margin-top: 20px;
-  text-align: center;
+.help-button {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 50px;
+  height: 50px;
+  background: #026766;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+  transition: background 0.2s, transform 0.2s;
+}
+
+.help-button:hover {
+  background: #014f4e;
+  transform: scale(1.05);
 }
 </style>
