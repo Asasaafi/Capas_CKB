@@ -1,5 +1,8 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 const images = [
   new URL('../assets/warehouse1.jpeg', import.meta.url).href,
@@ -38,6 +41,43 @@ onMounted(() => {
 onUnmounted(() => {
   clearInterval(intervalId)
 })
+
+const quickIntents = [
+  {
+    name: 'Storage',
+    route: 'Storage',
+    desc: 'Capacity & layout planning',
+    icon: `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="2" y="7" width="20" height="4" rx="1" stroke="currentColor" stroke-width="1.5"/>
+      <rect x="2" y="13" width="20" height="4" rx="1" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M6 7V5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v2" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M6 17v2a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-2" stroke="currentColor" stroke-width="1.5"/>
+    </svg>`
+  },
+  {
+    name: 'MHE',
+    route: 'MHE',
+    desc: 'Equipment requirements',
+    icon: `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="2" y="11" width="11" height="7" rx="1" stroke="currentColor" stroke-width="1.5"/>
+      <rect x="13" y="7" width="2" height="11" rx="0.5" stroke="currentColor" stroke-width="1.5"/>
+      <rect x="13" y="7" width="6" height="1.5" rx="0.5" stroke="currentColor" stroke-width="1.5"/>
+      <circle cx="6" cy="19" r="2" stroke="currentColor" stroke-width="1.5"/>
+      <circle cx="11" cy="19" r="2" stroke="currentColor" stroke-width="1.5"/>
+    </svg>`
+  },
+  {
+    name: 'Manpower',
+    route: 'Manpower',
+    desc: 'Workforce calculation',
+    icon: `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="9" cy="7" r="3" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M3 20c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      <circle cx="17" cy="8" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M21 20c0-2.761-1.791-5-4-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>`
+  }
+]
 </script>
 
 <template>
@@ -82,6 +122,28 @@ onUnmounted(() => {
         <p>All-in-one solution for fast calculations<br />&amp;<br />predicted warehouse planning</p>
         <span class="tag">Warehouse Intelligence Platform</span>
       </div>
+
+      <div class="divider-line" />
+
+      <div class="quick-intent">
+        <p class="qi-label">Quick Access</p>
+        <div class="qi-cards">
+          <button
+            v-for="item in quickIntents"
+            :key="item.name"
+            class="qi-card"
+            @click="router.push({ name: item.route })"
+          >
+            <span class="qi-icon" v-html="item.icon" />
+            <span class="qi-text">
+              <span class="qi-name">{{ item.name }}</span>
+              <span class="qi-desc">{{ item.desc }}</span>
+            </span>
+            <span class="qi-arrow">›</span>
+          </button>
+        </div>
+      </div>
+
     </div>
 
   </div>
@@ -282,4 +344,90 @@ onUnmounted(() => {
   padding: 3px 12px;
   border-radius: 20px;
 }
+
+/* === Quick Intent === */
+.quick-intent {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.qi-label {
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0 0 8px 0;
+}
+
+.qi-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.qi-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 7px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: white;
+  text-align: left;
+  min-width: 180px;
+}
+
+.qi-card:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.35);
+  transform: translateX(3px);
+}
+
+.qi-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.qi-icon :deep(svg) {
+  width: 20px;
+  height: 20px;
+}
+
+.qi-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.qi-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+  line-height: 1;
+}
+
+.qi-desc {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1;
+}
+
+.qi-arrow {
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.4);
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.qi-card:hover .qi-arrow {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+
 </style>

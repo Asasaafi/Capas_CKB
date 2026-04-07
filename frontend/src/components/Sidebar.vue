@@ -21,7 +21,7 @@ const logoUrl = new URL('../assets/LOGO.png', import.meta.url).href
                         <rect x="14" y="14" width="7" height="7"/>
                         <rect x="3" y="14" width="7" height="7"/>
                     </svg>
-                    Dashboard
+                    Home
                 </router-link>
             </li>
 
@@ -119,7 +119,33 @@ const logoUrl = new URL('../assets/LOGO.png', import.meta.url).href
                                 <line x1="12" y1="20" x2="12" y2="4"/>
                                 <line x1="6" y1="20" x2="6" y2="14"/>
                             </svg>
-                            Activity-Based
+                            Site-Based
+                        </router-link>
+                    </li>
+                    <li>
+                        <router-link 
+                            to="/manpower/liter" 
+                            class="menu-item"
+                        >
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="20" x2="18" y2="10"/>
+                                <line x1="12" y1="20" x2="12" y2="4"/>
+                                <line x1="6" y1="20" x2="6" y2="14"/>
+                            </svg>
+                            Liter-Based
+                        </router-link>
+                    </li>
+                    <li>
+                        <router-link 
+                            to="/manpower/cbm" 
+                            class="menu-item"
+                        >
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="20" x2="18" y2="10"/>
+                                <line x1="12" y1="20" x2="12" y2="4"/>
+                                <line x1="6" y1="20" x2="6" y2="14"/>
+                            </svg>
+                            CBM-Based
                         </router-link>
                     </li>
                 </ul>

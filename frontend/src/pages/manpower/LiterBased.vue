@@ -5,84 +5,65 @@ import { useRouter } from "vue-router"
 const router = useRouter()
 const showResult = ref(false)
 const resultSection = ref(null)
-const liSection = ref(null)
-
-const mode = ref("daily")
+const literSection = ref(null)
 
 const form = ref({
-  liInbound: "",
-  liOutbound: ""
+  inbound: "",
+  outbound: ""
 })
 
 const result = ref({
+  totalLiter: 0,
   totalMain: 0,
   totalBackup: 0,
-  totalAll: 0,
-  perDay: 0
+  totalAll: 0
 })
 
-// daily (exact sklearn coefficients)
-function calcDaily(liInbound, liOutbound) {
-  const interceptDaily = 9.572483841181906
-  const coefInboundDaily = 0.02397045
-  const coefOutboundDaily = 0.04328255
+// linear regression
+// X (liter)    = [87269, 97119.07, 94616.71, 104219]
+// Y (manpower) = [30, 29, 31, 31]
+const trainingX = [87269, 97119.07, 94616.71, 104219]
+const trainingY = [30, 29, 31, 31]
 
-  const rawPred =
-    interceptDaily +
-    (coefInboundDaily * liInbound) +
-    (coefOutboundDaily * liOutbound)
+function trainLinearRegression(x, y) {
+  const n = x.length
+  const meanX = x.reduce((a, b) => a + b, 0) / n
+  const meanY = y.reduce((a, b) => a + b, 0) / n
 
-  const totalMain = Math.ceil(rawPred)
-  const totalBackup = Math.ceil(totalMain * 0.10)
-
-  return {
-    totalMain,
-    totalBackup,
-    totalAll: totalMain + totalBackup,
-    perDay: null
+  let num = 0, den = 0
+  for (let i = 0; i < n; i++) {
+    num += (x[i] - meanX) * (y[i] - meanY)
+    den += (x[i] - meanX) ** 2
   }
+
+  const slope = num / den
+  const intercept = meanY - slope * meanX
+  return { slope, intercept }
 }
 
-// monthly (exact sklearn coefficients)
-const intercept = 36.66679822099945
-const coefInbound = -0.00083654
-const coefOutbound = 0.00078005
-
-function calcMonthly(inbound, outbound) {
-  const rawPred =
-    intercept +
-    (coefInbound * inbound) +
-    (coefOutbound * outbound)
-
-  const totalMain = Math.max(0, Math.round(rawPred))
-  const totalBackup = Math.round(totalMain * 0.10)
-  const totalAll = totalMain + totalBackup
-
-  const workingDays = 26
-  const perDay = Math.ceil(totalAll / workingDays)
-
-  return {
-    totalMain,
-    totalBackup,
-    totalAll,
-    perDay
-  }
-}
+const { slope, intercept } = trainLinearRegression(trainingX, trainingY)
 
 function manpowerCalculation() {
-  const liInbound = Number(form.value.liInbound)
-  const liOutbound = Number(form.value.liOutbound)
+  const inbound = Number(form.value.inbound)
+  const outbound = Number(form.value.outbound)
 
-  if (isNaN(liInbound) || isNaN(liOutbound) || liInbound <= 0 || liOutbound <= 0) {
-    alert("Inbound and outbound values must be filled and must be valid numbers")
+  if (isNaN(inbound) || isNaN(outbound) || inbound <= 0 || outbound <= 0) {
+    alert("Inbound dan outbound harus diisi dengan angka valid")
     return false
   }
 
-  const res = mode.value === "monthly"
-    ? calcMonthly(liInbound, liOutbound)
-    : calcDaily(liInbound, liOutbound)
+  const totalLiter = inbound + outbound
+  const totalMain = Math.round(slope * totalLiter + intercept)
+  const totalBackup = Math.round(totalMain * 0.10)
+  const totalAll = totalMain + totalBackup
 
-  result.value = res
+  result.value = {
+    totalLiter,
+    totalMain,
+    totalBackup,
+    totalAll
+  }
+
   return true
 }
 
@@ -101,80 +82,38 @@ const calculate = async () => {
 
 const resetForm = async () => {
   showResult.value = false
-  form.value = {
-    liInbound: "",
-    liOutbound: ""
-  }
-
-  result.value = {
-    totalMain: 0,
-    totalBackup: 0,
-    totalAll: 0,
-    perDay: 0
-  }
+  form.value = { inbound: "", outbound: "" }
+  result.value = { totalLiter: 0, totalMain: 0, totalBackup: 0, totalAll: 0 }
 
   await nextTick()
-  liSection.value?.scrollIntoView({ behavior: "smooth" })
-}
-
-const switchMode = (m) => {
-  mode.value = m
-  showResult.value = false
-
-  form.value = {
-    liInbound: "",
-    liOutbound: ""
-  }
-
-  result.value = {
-    totalMain: 0,
-    totalBackup: 0,
-    totalAll: 0,
-    perDay: 0
-  }
+  literSection.value?.scrollIntoView({ behavior: "smooth" })
 }
 </script>
 
 <template>
   <div class="container">
-    <h1>LI-Based Manpower Planning</h1>
-    <p>Estimate workforce requirements based on LI volume</p>
+    <h1>Liter-Based Manpower Planning</h1>
+    <p>Estimate workforce requirements based on liter volume</p>
 
-    <div class="card" ref="liSection">
-
-      <div class="toggle-group">
-        <button
-          :class="['toggle-btn', { active: mode === 'daily' }]"
-          @click="switchMode('daily')"
-        >
-          Per Day
-        </button>
-        <button
-          :class="['toggle-btn', { active: mode === 'monthly' }]"
-          @click="switchMode('monthly')"
-        >
-          Monthly
-        </button>
-      </div>
-
+    <div class="card" ref="literSection">
       <h3>Activity Information</h3>
 
       <div class="field">
-        <label>{{ mode === 'monthly' ? 'Inbound (LI/Month)' : 'Inbound (LI/Day)' }}</label>
+        <label>Inbound (liter)</label>
         <input
           type="number"
-          v-model="form.liInbound"
-          :placeholder="mode === 'monthly' ? 'e.g. 14063' : 'e.g. 500'"
+          v-model="form.inbound"
+          placeholder="e.g. 48323"
           @keyup.enter="$refs.outboundInput.focus()"
         />
       </div>
 
       <div class="field">
-        <label>{{ mode === 'monthly' ? 'Outbound (LI/Month)' : 'Outbound (LI/Day)' }}</label>
+        <label>Outbound (liter)</label>
         <input
           type="number"
-          v-model="form.liOutbound"
-          :placeholder="mode === 'monthly' ? 'e.g. 23580' : 'e.g. 600'"
+          v-model="form.outbound"
+          placeholder="e.g. 38946"
           ref="outboundInput"
           @keyup.enter="calculate"
         />
@@ -185,6 +124,10 @@ const switchMode = (m) => {
 
     <div v-if="showResult" ref="resultSection" class="result-section">
       <h3>Estimation Result</h3>
+
+      <div class="result-meta">
+        <span>Total Liter: {{ result.totalLiter.toLocaleString('id-ID') }}</span>
+      </div>
 
       <div class="metrics">
         <div class="metric-card">
@@ -205,6 +148,7 @@ const switchMode = (m) => {
           <p class="total-label">Total Manpower</p>
           <p class="total-sub">Main + Backup</p>
         </div>
+
         <div class="total-right">
           <span class="total-value">{{ result.totalAll }}</span>
           <span class="total-unit"> people</span>
@@ -239,44 +183,9 @@ p {
   max-width: 500px;
   margin: 30px auto;
   padding: 24px;
-
   border: 1px solid #e0e0e0;
   border-radius: 10px;
-
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-}
-
-.toggle-group {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 20px;
-}
-
-.toggle-btn {
-  flex: 1;
-  padding: 8px;
-
-  border: 1px solid #dcdcdc;
-  border-radius: 6px;
-  background: #f5f5f5;
-
-  color: #555;
-  font-weight: 500;
-  cursor: pointer;
-
-  transition: 0.2s;
-}
-
-.toggle-btn.active {
-  background: #026766;
-  color: #fff;
-  border-color: #026766;
-}
-
-.toggle-btn:hover:not(.active) {
-  background: #e8f4f4;
-  border-color: #026766;
-  color: #026766;
 }
 
 label {
@@ -289,7 +198,6 @@ input {
   width: 100%;
   padding: 8px 10px;
   margin-bottom: 12px;
-
   border-radius: 6px;
   border: 1px solid #dcdcdc;
   box-sizing: border-box;
@@ -304,14 +212,11 @@ input:focus {
 .btn {
   width: 100%;
   padding: 10px;
-
   background: #026766;
   color: #fff;
-
   border: none;
   border-radius: 6px;
   margin-top: 10px;
-
   cursor: pointer;
   font-weight: 500;
 }

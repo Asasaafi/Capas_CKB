@@ -72,19 +72,77 @@ const downloadResult = () => {
   saveAs(blob, 'predictions.csv')
 }
 
+// =========================
+// STORAGE RULES
+// =========================
+const STORAGE_AREA_PER_UNIT = {
+  "SHELVING": 1.2,
+  "CABINET": 1.5,
+  "RACKING": 8.5,
+  "FLOOR": 2.4
+}
+
+const STORAGE_UNIT_LABEL = {
+  "SHELVING": "units",
+  "CABINET": "units",
+  "RACKING": "pallets",
+  "FLOOR": "pallets"
+}
+
+const STORAGE_CAPACITY = {
+  "SHELVING": 35,    // bin per shelving
+  "CABINET": 144,    // bin per cabinet
+  "RACKING": 12,     // pallet per racking
+  "FLOOR": 2         // pallet per floor
+}
+
 const storageSummary = computed(() => {
   const summary = {}
+
   predictions.value.forEach(item => {
-    const type  = item["Storage Type"]
-    const level = item["Level"]
-    const key   = `${type}-${level}`
-    if (!summary[key]) {
-      summary[key] = { storageType: type, level, units: 0, cost: 0 }
+    const type = String(item["Storage Type"]).toUpperCase()
+    const actual = Number(item["Units Needed"] || 0) // total units/pallet/bin dari backend
+    const cost = Number(item["Total Cost"] || 0)
+
+    if (!summary[type]) {
+      summary[type] = { storageType: type, totalActual: 0, totalCost: 0 }
     }
-    summary[key].units += Number(item["Units Needed"] || 0)
-    summary[key].cost  += Number(item["Total Cost"]   || 0)
+
+    summary[type].totalActual += actual
+    summary[type].totalCost += cost
   })
-  return Object.values(summary)
+
+  return Object.values(summary).map(row => {
+    const capacity = STORAGE_CAPACITY[row.storageType] ?? 1
+    const qtyStorage = Math.ceil(row.totalActual / capacity)
+    const label = STORAGE_UNIT_LABEL[row.storageType] ?? "units"
+    const areaRate = STORAGE_AREA_PER_UNIT[row.storageType] ?? 1
+    const area = parseFloat((qtyStorage * areaRate).toFixed(1))
+
+    let actualReqLabel = ""
+    if (row.storageType === "RACKING" || row.storageType === "FLOOR") {
+      actualReqLabel = `${row.totalActual.toLocaleString("id-ID")} pallet`
+    } else {
+      actualReqLabel = `${row.totalActual.toLocaleString("id-ID")} bin`
+    }
+
+    return {
+      storageType: row.storageType,
+      actualReq: actualReqLabel,
+      qtyStorage,
+      totalCost: row.totalCost,
+      area
+    }
+  })
+})
+
+const summaryTotal = computed(() => {
+  return {
+    totalCost: storageSummary.value.reduce((s, r) => s + r.totalCost, 0),
+    totalArea: parseFloat(
+      storageSummary.value.reduce((s, r) => s + r.area, 0).toFixed(1)
+    )
+  }
 })
 </script>
 
@@ -185,27 +243,48 @@ const storageSummary = computed(() => {
       <button class="dl-btn" @click="downloadResult">Download Result</button>
     </div>
 
+    <!-- ===================== SUMMARY TABLE ===================== -->
     <div v-if="storageSummary.length > 0" class="section">
-      <p class="section-title">Storage Requirement Summary</p>
+      <p class="section-title">Storage Requirement Summary (Cost &amp; Area)</p>
       <div class="tbl-wrap">
         <table>
           <thead>
             <tr>
               <th>Storage Type</th>
-              <th>Level</th>
-              <th>Total Units Needed</th>
+              <th>Actual Requirement</th>
+              <th>Qty Storage</th>
               <th>Total Cost</th>
+              <th>Area (m²)</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="(row, index) in storageSummary" :key="index">
-              <td>{{ row.storageType }}</td>
-              <td>{{ row.level }}</td>
-              <td>{{ row.units }}</td>
-              <td>Rp {{ row.cost.toLocaleString() }}</td>
+              <td>
+                <span class="type-badge" :class="row.storageType.toLowerCase()">
+                  {{ row.storageType }}
+                </span>
+              </td>
+              <td>{{ row.actualReq }}</td>
+              <td>{{ row.qtyStorage }}</td>
+              <td>Rp {{ row.totalCost.toLocaleString("id-ID") }}</td>
+              <td>{{ row.area }}</td>
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <div class="summary-total">
+        <div class="summary-total-title">Estimation Summary</div>
+        <div class="summary-total-grid">
+          <div class="summary-total-item">
+            <span class="summary-label">Total Cost</span>
+            <span class="summary-value">Rp {{ summaryTotal.totalCost.toLocaleString("id-ID") }}</span>
+          </div>
+          <div class="summary-total-item">
+            <span class="summary-label">Total Area</span>
+            <span class="summary-value">{{ summaryTotal.totalArea }} m²</span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -237,7 +316,7 @@ const storageSummary = computed(() => {
             <td>{{ row["Quantity"] }}</td>
             <td>{{ row["Weight (kg)"] }}</td>
             <td>{{ row["Growth Indicator"] }}</td>
-            <td>{{ row["Dimension (cm)"] }}</td>
+            <td>{{ row["Dimension (cm3)"] }}</td>
             <td>{{ row["Storage Type"] }}</td>
             <td>{{ row["Level"] }}</td>
             <td>{{ row["Units Needed"] }}</td>
@@ -555,6 +634,63 @@ tbody tr:last-child td {
 
 tbody tr:hover td {
   background: #f8fffe;
+}
+
+/* Type badge */
+.type-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.type-badge.shelving  { background: #e8f4f4; color: #026766; }
+.type-badge.cabinet   { background: #e8f0ff; color: #3b5bdb; }
+.type-badge.racking   { background: #fff3e0; color: #e07b00; }
+.type-badge.floor     { background: #fce8e8; color: #c0392b; }
+
+/* Summary Total */
+.summary-total {
+  margin-top: 12px;
+  background: #f8fffe;
+  border: 1px solid #c8e6e5;
+  border-radius: 10px;
+  padding: 16px 20px;
+}
+
+.summary-total-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #026766;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summary-total-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.summary-total-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.summary-label {
+  font-size: 12px;
+  color: #888;
+}
+
+.summary-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111;
 }
 
 .preview-section {

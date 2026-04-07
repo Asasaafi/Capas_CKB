@@ -8,6 +8,8 @@ import MHECalculation from "../pages/MHECalculation.vue"
 import ManpowerCalculation from "../pages/ManpowerCalculation.vue"
 import LIBased from "../pages/manpower/LIBased.vue"
 import ActivityBased from "../pages/manpower/ActivityBased.vue"
+import LiterBased from "../pages/manpower/LiterBased.vue"
+import CbmBased from "../pages/manpower/CbmBased.vue"
 // import History from "../pages/History.vue"
 
 const routes = [
@@ -62,6 +64,18 @@ const routes = [
         path: "manpower/activity",
         name: "ActivityBased",
         component: ActivityBased
+      },
+
+      {
+        path: "manpower/liter",
+        name: "LiterBased",
+        component: LiterBased
+      },
+
+      {
+        path: "manpower/cbm",
+        name: "CbmBased",
+        component: CbmBased
       }
 
       // {

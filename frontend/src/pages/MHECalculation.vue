@@ -31,13 +31,33 @@ const mheRules = {
   ],
   cbm: [
     [1,   50,  [["Handpallet", 1], ["Troli", 1]]],
-    [51,  200, [["Forklift 3T / Reach Truck", 1], ["Handpallet", 1]]],
-    [201, 500, [["Forklift 3T / 5T", 1], ["Pallet Mover", 1], ["Handpallet", 2], ["Troli", 4]]]
+    [51,  200, [["Forklift 3T", 1], ["Reach Truck", 1], ["Handpallet", 1]]],
+    [201, 500, [["Forklift 5T", 1], ["Pallet Mover", 1], ["Handpallet", 2], ["Troli", 4]]]
   ]
+}
+
+// Harga MHE (Rupiah)
+const hargaMHE = {
+  "Handpallet":    3999000,
+  "Troli":         1500000,
+  "Forklift 3T":   280500000,
+  "Reach Truck":   99988800,
+  "Forklift 5T":   550000000,
+  "Forklift 16T":  2200000000,
+  "Pallet Mover":  65000000,
+  "Troli Tingkat": 2500000,
+  "Drum Grabber":  12000000,
+  "Crane":         1500000000,
+  "Telehandler":   1190231262,
+  "Stacker":       25000000
 }
 
 const uomLabels = { ton: "Ton", liter: "Liter", line_item: "Line Item", cbm: "CBM" }
 const uomBadgeClass = { ton: "badge-ton", liter: "badge-liter", line_item: "badge-line-item", cbm: "badge-cbm" }
+
+function formatRupiah(val) {
+  return "Rp " + val.toLocaleString("id-ID")
+}
 
 function getIcon(name) {
   const n = name.toLowerCase()
@@ -205,6 +225,11 @@ const resetForm = async () => {
 
 const totalUnits = () => Object.values(result.value.totals).reduce((s, v) => s + v, 0)
 const totalTypes = () => Object.keys(result.value.totals).length
+
+const totalBiaya = () =>
+  Object.entries(result.value.totals).reduce((sum, [nama, qty]) => {
+    return sum + (hargaMHE[nama] || 0) * qty
+  }, 0)
 </script>
 
 <template>
@@ -263,7 +288,7 @@ const totalTypes = () => Object.keys(result.value.totals).length
     </div>
 
     <div v-if="showResult" ref="resultSection" class="card result-section">
-      <h3>MHE Recommendation Result</h3>
+      <h3>Estimation MHE Result</h3>
 
       <div class="info-bar">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -314,8 +339,29 @@ const totalTypes = () => Object.keys(result.value.totals).length
             <div class="equip-qty">{{ qty }}</div>
             <div class="equip-unit">unit</div>
             <div class="equip-name">{{ nama }}</div>
+            <div class="equip-price-row">
+              <span class="equip-price-label">Unit Price</span>
+              <span class="equip-price-value">{{ hargaMHE[nama] ? formatRupiah(hargaMHE[nama]) : "—" }}</span>
+            </div>
+            <div class="equip-price-row equip-subtotal-row">
+              <span class="equip-price-label">Subtotal</span>
+              <span class="equip-subtotal-value">{{ hargaMHE[nama] ? formatRupiah(hargaMHE[nama] * qty) : "—" }}</span>
+            </div>
           </div>
         </div>
+      </div>
+
+      <!-- Total Estimasi Biaya -->
+      <div class="total-cost-box">
+        <div class="total-cost-label">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <rect x="2" y="6" width="20" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M16 10a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M6 10h2M6 14h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          Estimated Total Cost for Material Handling Equipment
+        </div>
+        <div class="total-cost-value">{{ formatRupiah(totalBiaya()) }}</div>
       </div>
 
       <button class="btn-outline" @click="resetForm">
@@ -570,7 +616,7 @@ select:focus {
   border-radius: 10px;
   padding: 16px 14px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 14px;
 }
 
@@ -614,6 +660,68 @@ select:focus {
   line-height: 1.4;
 }
 
+/* === Harga & Subtotal === */
+.equip-price-row {
+  display: flex;
+  flex-direction: column;
+  margin-top: 6px;
+  gap: 1px;
+}
+
+.equip-price-label {
+  font-size: 10px;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.equip-price-value {
+  font-size: 11px;
+  color: #555;
+  font-weight: 500;
+}
+
+.equip-subtotal-row {
+  margin-top: 5px;
+  padding-top: 5px;
+  border-top: 1px dashed #c4e0df;
+}
+
+.equip-subtotal-value {
+  font-size: 12px;
+  color: #026766;
+  font-weight: 700;
+}
+
+/* === Total Cost Box === */
+.total-cost-box {
+  background: #026766;
+  border-radius: 10px;
+  padding: 18px 20px;
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.total-cost-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #b2e0df;
+}
+
+.total-cost-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+}
+
 .result-section {
   animation: fadeIn 0.4s ease-in-out;
 }
@@ -627,5 +735,6 @@ select:focus {
   .container { padding: 20px 16px; }
   .uom-row { grid-template-columns: 1fr 1fr auto; gap: 6px; }
   .equip-grid { grid-template-columns: 1fr 1fr; }
+  .total-cost-box { flex-direction: column; align-items: flex-start; }
 }
 </style>

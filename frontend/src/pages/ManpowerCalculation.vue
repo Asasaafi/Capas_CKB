@@ -5,6 +5,8 @@ const router = useRouter()
 
 const goToLI       = () => router.push("/manpower/li")
 const goToActivity = () => router.push("/manpower/activity")
+const goToLiter    = () => router.push("/manpower/liter")
+const goToCBM = () => router.push("/manpower/cbm")
 </script>
 
 <template>
@@ -12,8 +14,8 @@ const goToActivity = () => router.push("/manpower/activity")
 
     <div class="guide-header">
       <div class="badge">
-        <!-- Users icon -->
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
           <circle cx="9" cy="7" r="4"/>
           <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
@@ -33,7 +35,8 @@ const goToActivity = () => router.push("/manpower/activity")
       <div class="card" @click="goToLI">
         <div class="card-top">
           <div class="card-icon-wrap">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#026766" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#026766" stroke-width="1.8"
+                 stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="20" x2="18" y2="10"/>
               <line x1="12" y1="20" x2="12" y2="4"/>
               <line x1="6"  y1="20" x2="6"  y2="14"/>
@@ -44,20 +47,20 @@ const goToActivity = () => router.push("/manpower/activity")
 
         <h3>LI-Based Calculation</h3>
         <p>
-          Estimate manpower requirements based on the total
-          <strong>Line Items (LI)</strong> handled in warehouse <strong class="">Part Management</strong> operations.
-          Suitable for quick workload estimation when total handling volume is known.
+          Estimate manpower requirements based on <strong>Line Items (LI)</strong> handled in warehouse operations.
+          This method supports two modes:
         </p>
 
         <ul class="card-features">
-          <li>Fast manpower estimation</li>
-          <li>Based on total handling load</li>
-          <li>Suitable for planning scenarios</li>
+          <li><strong>Per Day:</strong> Rule-based calculation combined with regression model for daily inbound & outbound LI.</li>
+          <li><strong>Per Month:</strong> Regression model trained on historical monthly LI vs manpower data.</li>
+          <li>Suitable for both quick daily estimation and monthly workforce planning.</li>
         </ul>
 
         <span class="card-action">
           Start Calculation
-          <svg viewBox="0 0 24 24" fill="none" stroke="#026766" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#026766" stroke-width="2.5"
+               stroke-linecap="round" stroke-linejoin="round">
             <line x1="5" y1="12" x2="19" y2="12"/>
             <polyline points="12 5 19 12 12 19"/>
           </svg>
@@ -67,7 +70,8 @@ const goToActivity = () => router.push("/manpower/activity")
       <div class="card" @click="goToActivity">
         <div class="card-top">
           <div class="card-icon-wrap">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#026766" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#026766" stroke-width="1.8"
+                 stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="3"/>
               <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
             </svg>
@@ -75,22 +79,98 @@ const goToActivity = () => router.push("/manpower/activity")
           <span class="card-num">02</span>
         </div>
 
-        <h3>Activity-Based Calculation</h3>
+        <h3>Site-Based Calculation</h3>
         <p>
-          Calculate manpower based on specific warehouse activities such as
-          <strong>Goods Receipt (GR)</strong>, <strong>Goods Issue (GI)</strong>,
-          and <strong>Stock Transfer (ST)</strong>.
+          Estimate manpower requirements using a <strong>linear regression model</strong> trained on historical
+          <strong>Line Item (LI) vs manpower</strong> data. This method predicts workforce needs based on
+          <strong>total LI handled</strong> in warehouse operations such as <strong>Goods Receipt (GR)</strong>,
+          <strong>Goods Issue (GI)</strong>, and <strong>Stock Transfer (ST)</strong>.
+          Suitable for activity-driven workforce planning.
         </p>
 
         <ul class="card-features">
-          <li>More detailed manpower analysis</li>
-          <li>Based on operational activity workload</li>
+          <li>Regression-based manpower estimation</li>
+          <li>Uses total LI workload</li>
           <li>Suitable for operational planning</li>
         </ul>
 
         <span class="card-action">
           Start Calculation
-          <svg viewBox="0 0 24 24" fill="none" stroke="#026766" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#026766" stroke-width="2.5"
+               stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"/>
+            <polyline points="12 5 19 12 12 19"/>
+          </svg>
+        </span>
+      </div>
+
+      <div class="card" @click="goToLiter">
+        <div class="card-top">
+          <div class="card-icon-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#026766" stroke-width="1.8"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+              <path d="M2 17l10 5 10-5"/>
+              <path d="M2 12l10 5 10-5"/>
+            </svg>
+          </div>
+          <span class="card-num">03</span>
+        </div>
+
+        <h3>Liter-Based Calculation</h3>
+        <p>
+          Estimate manpower requirements using a <strong>linear regression model</strong> trained on historical
+          <strong>liter volume vs manpower</strong> data. This method predicts workforce needs based on
+          <strong>inbound and outbound liter totals</strong> in warehouse <strong>Liquid Management</strong> operations.
+          Suitable for data-driven, volume-based workforce planning.
+        </p>
+
+        <ul class="card-features">
+          <li>Regression-based manpower estimation</li>
+          <li>Uses inbound & outbound liter totals</li>
+          <li>Suitable for liquid warehouse operations</li>
+        </ul>
+
+        <span class="card-action">
+          Start Calculation
+          <svg viewBox="0 0 24 24" fill="none" stroke="#026766" stroke-width="2.5"
+               stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"/>
+            <polyline points="12 5 19 12 12 19"/>
+          </svg>
+        </span>
+      </div>
+
+      <div class="card" @click="goToCBM">
+        <div class="card-top">
+          <div class="card-icon-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#026766" stroke-width="1.8"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 7l9-4 9 4-9 4-9-4z"/>
+              <path d="M3 17l9 4 9-4"/>
+              <path d="M3 12l9 4 9-4"/>
+            </svg>
+          </div>
+          <span class="card-num">04</span>
+        </div>
+
+        <h3>CBM-Based Calculation</h3>
+        <p>
+          Estimate manpower requirements based on total
+          <strong>inbound and outbound CBM volume</strong> in warehouse operations.
+          Suitable for cubic-volume based planning.
+        </p>
+
+        <ul class="card-features">
+          <li>CBM-based manpower estimation</li>
+          <li>Based on cubic volume load</li>
+          <li>Suitable for storage planning</li>
+        </ul>
+
+        <span class="card-action">
+          Start Calculation
+          <svg viewBox="0 0 24 24" fill="none" stroke="#026766" stroke-width="2.5"
+               stroke-linecap="round" stroke-linejoin="round">
             <line x1="5" y1="12" x2="19" y2="12"/>
             <polyline points="12 5 19 12 12 19"/>
           </svg>
@@ -103,7 +183,7 @@ const goToActivity = () => router.push("/manpower/activity")
 
 <style scoped>
 .guide-container {
-  max-width: 1000px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 48px 24px;
 }

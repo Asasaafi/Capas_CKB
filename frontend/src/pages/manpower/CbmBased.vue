@@ -3,91 +3,46 @@ import { ref, nextTick } from "vue"
 import { useRouter } from "vue-router"
 
 const router = useRouter()
+
 const showResult = ref(false)
 const resultSection = ref(null)
-const liSection = ref(null)
-
-const mode = ref("daily")
+const cbmSection = ref(null)
+const outboundInput = ref(null)
 
 const form = ref({
-  liInbound: "",
-  liOutbound: ""
+  inbound: "",
+  outbound: ""
 })
 
 const result = ref({
+  totalCbm: 0,
   totalMain: 0,
   totalBackup: 0,
-  totalAll: 0,
-  perDay: 0
+  totalAll: 0
 })
 
-// daily (exact sklearn coefficients)
-function calcDaily(liInbound, liOutbound) {
-  const interceptDaily = 9.572483841181906
-  const coefInboundDaily = 0.02397045
-  const coefOutboundDaily = 0.04328255
-
-  const rawPred =
-    interceptDaily +
-    (coefInboundDaily * liInbound) +
-    (coefOutboundDaily * liOutbound)
-
-  const totalMain = Math.ceil(rawPred)
-  const totalBackup = Math.ceil(totalMain * 0.10)
-
-  return {
-    totalMain,
-    totalBackup,
-    totalAll: totalMain + totalBackup,
-    perDay: null
-  }
-}
-
-// monthly (exact sklearn coefficients)
-const intercept = 36.66679822099945
-const coefInbound = -0.00083654
-const coefOutbound = 0.00078005
-
-function calcMonthly(inbound, outbound) {
-  const rawPred =
-    intercept +
-    (coefInbound * inbound) +
-    (coefOutbound * outbound)
-
-  const totalMain = Math.max(0, Math.round(rawPred))
-  const totalBackup = Math.round(totalMain * 0.10)
-  const totalAll = totalMain + totalBackup
-
-  const workingDays = 26
-  const perDay = Math.ceil(totalAll / workingDays)
-
-  return {
-    totalMain,
-    totalBackup,
-    totalAll,
-    perDay
-  }
-}
-
 function manpowerCalculation() {
-  const liInbound = Number(form.value.liInbound)
-  const liOutbound = Number(form.value.liOutbound)
+  const inbound = Number(form.value.inbound)
+  const outbound = Number(form.value.outbound)
 
-  if (isNaN(liInbound) || isNaN(liOutbound) || liInbound <= 0 || liOutbound <= 0) {
-    alert("Inbound and outbound values must be filled and must be valid numbers")
+  if (isNaN(inbound) || isNaN(outbound) || inbound <= 0 || outbound <= 0) {
+    alert("Inbound dan outbound harus diisi dengan angka valid")
     return false
   }
 
-  const res = mode.value === "monthly"
-    ? calcMonthly(liInbound, liOutbound)
-    : calcDaily(liInbound, liOutbound)
+  const totalCbm = inbound + outbound
+  const totalMain = 8
+  const totalBackup = Math.ceil(totalMain * 0.10)
+  const totalAll = totalMain + totalBackup
 
-  result.value = res
+  result.value = {
+    totalCbm,
+    totalMain,
+    totalBackup,
+    totalAll
+  }
+
   return true
-}
-
-const goToManpower = () => {
-  router.push("/manpower")
 }
 
 const calculate = async () => {
@@ -101,80 +56,42 @@ const calculate = async () => {
 
 const resetForm = async () => {
   showResult.value = false
-  form.value = {
-    liInbound: "",
-    liOutbound: ""
-  }
-
-  result.value = {
-    totalMain: 0,
-    totalBackup: 0,
-    totalAll: 0,
-    perDay: 0
-  }
+  form.value = { inbound: "", outbound: "" }
+  result.value = { totalCbm: 0, totalMain: 0, totalBackup: 0, totalAll: 0 }
 
   await nextTick()
-  liSection.value?.scrollIntoView({ behavior: "smooth" })
+  cbmSection.value?.scrollIntoView({ behavior: "smooth" })
 }
 
-const switchMode = (m) => {
-  mode.value = m
-  showResult.value = false
-
-  form.value = {
-    liInbound: "",
-    liOutbound: ""
-  }
-
-  result.value = {
-    totalMain: 0,
-    totalBackup: 0,
-    totalAll: 0,
-    perDay: 0
-  }
+const goToManpower = () => {
+  router.push("/manpower")
 }
 </script>
 
 <template>
   <div class="container">
-    <h1>LI-Based Manpower Planning</h1>
-    <p>Estimate workforce requirements based on LI volume</p>
+    <h1>CBM-Based Manpower Planning</h1>
+    <p>Estimate workforce requirements based on CBM volume</p>
 
-    <div class="card" ref="liSection">
-
-      <div class="toggle-group">
-        <button
-          :class="['toggle-btn', { active: mode === 'daily' }]"
-          @click="switchMode('daily')"
-        >
-          Per Day
-        </button>
-        <button
-          :class="['toggle-btn', { active: mode === 'monthly' }]"
-          @click="switchMode('monthly')"
-        >
-          Monthly
-        </button>
-      </div>
-
+    <div class="card" ref="cbmSection">
       <h3>Activity Information</h3>
 
       <div class="field">
-        <label>{{ mode === 'monthly' ? 'Inbound (LI/Month)' : 'Inbound (LI/Day)' }}</label>
+        <label>Inbound (CBM)</label>
         <input
           type="number"
-          v-model="form.liInbound"
-          :placeholder="mode === 'monthly' ? 'e.g. 14063' : 'e.g. 500'"
-          @keyup.enter="$refs.outboundInput.focus()"
+          v-model="form.inbound"
+          placeholder="e.g. 50400"
+          @keyup.enter="outboundInput.focus()"
         />
       </div>
 
       <div class="field">
-        <label>{{ mode === 'monthly' ? 'Outbound (LI/Month)' : 'Outbound (LI/Day)' }}</label>
+        <label>Outbound (CBM)</label>
         <input
           type="number"
-          v-model="form.liOutbound"
-          :placeholder="mode === 'monthly' ? 'e.g. 23580' : 'e.g. 600'"
+          v-model="form.outbound"
+          placeholder="e.g. 149600"
           ref="outboundInput"
           @keyup.enter="calculate"
         />
@@ -185,6 +102,10 @@ const switchMode = (m) => {
 
     <div v-if="showResult" ref="resultSection" class="result-section">
       <h3>Estimation Result</h3>
+
+      <div class="result-meta">
+        <span>Total CBM: {{ result.totalCbm.toLocaleString('id-ID') }}</span>
+      </div>
 
       <div class="metrics">
         <div class="metric-card">
@@ -205,9 +126,10 @@ const switchMode = (m) => {
           <p class="total-label">Total Manpower</p>
           <p class="total-sub">Main + Backup</p>
         </div>
+
         <div class="total-right">
           <span class="total-value">{{ result.totalAll }}</span>
-          <span class="total-unit"> people</span>
+          <span class="total-unit">people</span>
         </div>
       </div>
 
@@ -215,9 +137,7 @@ const switchMode = (m) => {
     </div>
   </div>
 
-  <div class="help-button" @click="goToManpower">
-    ?
-  </div>
+  <div class="help-button" @click="goToManpower">?</div>
 </template>
 
 <style scoped>
@@ -239,44 +159,9 @@ p {
   max-width: 500px;
   margin: 30px auto;
   padding: 24px;
-
   border: 1px solid #e0e0e0;
   border-radius: 10px;
-
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-}
-
-.toggle-group {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 20px;
-}
-
-.toggle-btn {
-  flex: 1;
-  padding: 8px;
-
-  border: 1px solid #dcdcdc;
-  border-radius: 6px;
-  background: #f5f5f5;
-
-  color: #555;
-  font-weight: 500;
-  cursor: pointer;
-
-  transition: 0.2s;
-}
-
-.toggle-btn.active {
-  background: #026766;
-  color: #fff;
-  border-color: #026766;
-}
-
-.toggle-btn:hover:not(.active) {
-  background: #e8f4f4;
-  border-color: #026766;
-  color: #026766;
 }
 
 label {
@@ -289,7 +174,6 @@ input {
   width: 100%;
   padding: 8px 10px;
   margin-bottom: 12px;
-
   border-radius: 6px;
   border: 1px solid #dcdcdc;
   box-sizing: border-box;
@@ -304,14 +188,11 @@ input:focus {
 .btn {
   width: 100%;
   padding: 10px;
-
   background: #026766;
   color: #fff;
-
   border: none;
   border-radius: 6px;
   margin-top: 10px;
-
   cursor: pointer;
   font-weight: 500;
 }
