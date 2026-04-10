@@ -8,6 +8,22 @@ model = model_bundle["model"]
 encoder = model_bundle["encoder"]
 features = model_bundle["features"]
 
+def clean_for_json(data):
+    if isinstance(data, dict):
+        return {k: clean_for_json(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [clean_for_json(v) for v in data]
+    elif isinstance(data, tuple):
+        return tuple(clean_for_json(v) for v in data)
+    elif isinstance(data, (np.integer,)):
+        return int(data)
+    elif isinstance(data, (np.floating,)):
+        return float(data)
+    elif isinstance(data, (np.ndarray,)):
+        return data.tolist()
+    else:
+        return data
+
 STORAGE_RULES = {
     "CABINET": [
         ("LEVEL I", 0.0009),
@@ -44,31 +60,23 @@ STORAGE_CAPACITY = {
     "CABINET": {"bin_per_unit": 144},
     "SHELVING": {"bin_per_unit": 35},
     "RACKING": {"pallet_per_unit": 12},
-    "FLOOR": {
-        "pallet_per_unit": 1,
-        "stacking": 2
-    }
+    "FLOOR": {"pallet_per_unit": 1, "stacking": 2}
 }
 
 def calculate_cost(storage, volume_per_item, total_volume):
-
     storage = str(storage).upper()
 
     if storage not in STORAGE_RULES:
         return "-", 0, 0
 
     levels = STORAGE_RULES[storage]
-    selected_level = None
-    level_volume = None
+    selected_level, level_volume = levels[-1]
 
     for level_name, capacity in levels:
         if volume_per_item <= capacity:
             selected_level = level_name
             level_volume = capacity
             break
-
-    if selected_level is None:
-        selected_level, level_volume = levels[-1]
 
     if storage == "CABINET":
         total_bin = math.ceil(total_volume / level_volume)
@@ -96,7 +104,6 @@ def calculate_cost(storage, volume_per_item, total_volume):
 
     return selected_level, required_units, total_cost
 
-
 def predict_storage(df: pd.DataFrame):
 
     df.columns = df.columns.str.strip()
@@ -112,7 +119,6 @@ def predict_storage(df: pd.DataFrame):
     ]
 
     missing = [c for c in required_columns if c not in df.columns]
-
     if missing:
         raise ValueError(f"Missing columns: {missing}")
 
@@ -139,7 +145,6 @@ def predict_storage(df: pd.DataFrame):
         df[col] = df[col].fillna(df[col].median())
 
     df["Growth Indicator"] = df["Growth Indicator"].astype(str).str.strip()
-
     most_common_label = encoder.classes_[0]
 
     df.loc[
@@ -166,35 +171,32 @@ def predict_storage(df: pd.DataFrame):
 
     X = df[features].copy()
     predictions = model.predict(X)
+    predictions = [str(p) for p in predictions]
 
     results = []
 
     for i in range(len(df)):
 
-        storage = str(predictions[i])
+        storage = predictions[i]
 
-        if df.iloc[i]["Total_Volume_m3"] > 1.44 and storage == "RACKING":
+        if float(df.iloc[i]["Total_Volume_m3"]) > 1.44 and storage == "RACKING":
             storage = "FLOOR"
 
-        vol_per_item = df.iloc[i]["Volume_m3"]
-        total_vol = df.iloc[i]["Total_Volume_m3"]
+        vol_per_item = float(df.iloc[i]["Volume_m3"])
+        total_vol = float(df.iloc[i]["Total_Volume_m3"])
 
-        level, units, cost = calculate_cost(
-            storage,
-            vol_per_item,
-            total_vol
-        )
+        level, units, cost = calculate_cost(storage, vol_per_item, total_vol)
 
         results.append({
-            "Part Number": df.iloc[i]["Part Number"],
-            "Quantity": df.iloc[i]["Quantity"],
-            "Weight (kg)": df.iloc[i]["Unit Weight (kg)"],
-            "Growth Indicator": df.iloc[i]["Growth Indicator"],
-            "Volume per Item (m3)": round(vol_per_item, 4),
-            "Storage Type": storage,
-            "Level": level,
-            "Units Needed": units,
-            "Total Cost": cost
+            "Part Number": str(df.iloc[i]["Part Number"]),
+            "Quantity": int(df.iloc[i]["Quantity"]),
+            "Weight (kg)": float(df.iloc[i]["Unit Weight (kg)"]),
+            "Growth Indicator": str(df.iloc[i]["Growth Indicator"]),
+            "Volume per Item (m3)": float(round(vol_per_item, 4)),
+            "Storage Type": str(storage),
+            "Level": str(level),
+            "Units Needed": int(units),
+            "Total Cost": float(cost)
         })
 
-    return results
+    return clean_for_json(results)
