@@ -23,14 +23,14 @@ const result = ref({
 
 // daily (exact sklearn coefficients)
 function calcDaily(liInbound, liOutbound) {
-  const interceptDaily = 9.572483841181906
-  const coefInboundDaily = 0.02397045
-  const coefOutboundDaily = 0.04328255
+  const INTERCEPT = 7.819727891156468
+  const COEF_INBOUND = 0.00993197
+  const COEF_OUTBOUND = 0.03508503
 
   const rawPred =
-    interceptDaily +
-    (coefInboundDaily * liInbound) +
-    (coefOutboundDaily * liOutbound)
+    INTERCEPT +
+    (COEF_INBOUND * liInbound) +
+    (COEF_OUTBOUND * liOutbound)
 
   const totalMain = Math.ceil(rawPred)
   const totalBackup = Math.ceil(totalMain * 0.10)
