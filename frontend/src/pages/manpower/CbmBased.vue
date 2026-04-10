@@ -30,8 +30,13 @@ function manpowerCalculation() {
     return false
   }
 
+  const INTERCEPT = 4.637344863290291
+  const COEF = 1.33773748e-5
+
   const totalCbm = inbound + outbound
-  const totalMain = 8
+
+  const predicted = INTERCEPT + COEF * totalCbm
+  const totalMain = Math.max(8, Math.ceil(predicted))
   const totalBackup = Math.ceil(totalMain * 0.10)
   const totalAll = totalMain + totalBackup
 
