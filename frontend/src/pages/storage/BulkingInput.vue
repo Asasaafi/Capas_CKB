@@ -7,6 +7,15 @@ const showResult    = ref(false)
 const resultSection = ref(null)
 const bulkSection   = ref(null)
 
+const totalGoodsInput    = ref(null)
+const weightInput        = ref(null)
+const itemPerPalletInput = ref(null)
+const lengthInput        = ref(null)
+const widthInput         = ref(null)
+const heightInput        = ref(null)
+const maxStackingInput   = ref(null)
+const gangwayInput       = ref(null)
+
 const initialFormState = {
   numberParts   : '',
   totalGoods    : '',
@@ -138,13 +147,16 @@ const resetForm = async () => {
       <h3>Bulk Information</h3>
 
       <label>Number Parts</label>
-      <input v-model="form.numberParts" placeholder="e.g. 2530-01-244443" />
+      <input v-model="form.numberParts" placeholder="e.g. 2530-01-244443"
+        @keyup.enter="totalGoodsInput.focus()" />
 
       <label>Total Goods (tons)</label>
-      <input type="number" v-model.number="form.totalGoods" placeholder="e.g. 2100" />
+      <input type="number" v-model.number="form.totalGoods" placeholder="e.g. 2100"
+        ref="totalGoodsInput" @keyup.enter="weightInput.focus()" />
 
       <label>Weight Per Item (kg)</label>
-      <input type="number" v-model.number="form.weightPerItem" placeholder="e.g. 25" />
+      <input type="number" v-model.number="form.weightPerItem" placeholder="e.g. 25"
+        ref="weightInput" @keyup.enter="itemPerPalletInput?.focus()" />
 
       <label>Calculation Method</label>
       <select v-model="calculationMethod">
@@ -154,93 +166,89 @@ const resetForm = async () => {
 
       <div v-if="calculationMethod === 'item'">
         <label>Items per Pallet</label>
-        <input
-          type="number"
-          v-model.number="form.itemPerPallet"
-          placeholder="e.g. 20"
-        />
+        <input type="number" v-model.number="form.itemPerPallet" placeholder="e.g. 20"
+          ref="itemPerPalletInput" @keyup.enter="maxStackingInput.focus()" />
       </div>
 
       <div v-if="calculationMethod === 'dimension'" class="dimension-row">
         <div class="field">
           <label>Length (cm)</label>
-          <input
-            type="number"
-            v-model.number="form.length"
-            placeholder="e.g. 60"
-          />
+          <input type="number" v-model.number="form.length" placeholder="e.g. 60"
+            ref="itemPerPalletInput" @keyup.enter="$refs.widthInput?.focus()" />
         </div>
-
         <div class="field">
           <label>Width (cm)</label>
-          <input
-            type="number"
-            v-model.number="form.width"
-            placeholder="e.g. 14"
-          />
+          <input type="number" v-model.number="form.width" placeholder="e.g. 14"
+            ref="widthInput" @keyup.enter="$refs.heightInput?.focus()" />
         </div>
-
         <div class="field">
           <label>Height (cm)</label>
-          <input
-            type="number"
-            v-model.number="form.height"
-            placeholder="e.g. 7"
-          />
+          <input type="number" v-model.number="form.height" placeholder="e.g. 7"
+            ref="heightInput" @keyup.enter="maxStackingInput.focus()" />
         </div>
       </div>
 
       <label>Max Pallet Stacking</label>
-      <input
-        type="number"
-        v-model.number="form.maxStacking"
-        placeholder="e.g. 2"
-      />
+      <input type="number" v-model.number="form.maxStacking" placeholder="e.g. 2"
+        ref="maxStackingInput" @keyup.enter="gangwayInput.focus()" />
 
       <label>Gangway Allowance (%)</label>
-      <input
-        type="number"
-        v-model.number="form.gangway"
-        placeholder="e.g. 30"
-      />
+      <input type="number" v-model.number="form.gangway" placeholder="e.g. 30"
+        ref="gangwayInput" @keyup.enter="calculate" />
 
-      <button class="btn" @click="calculate">
-        Calculate Prediction
-      </button>
+      <button class="btn" @click="calculate">Calculate Prediction</button>
     </div>
 
     <div v-if="showResult" ref="resultSection" class="result-section">
-      <h3>Calculation Result</h3>
+      <h3>Calculation result</h3>
 
-      <div class="result-group">
-        <label>Items per Pallet</label>
-        <input :value="result.itemsPerPallet" readonly />
+      <span class="result-meta-badge">
+        Method: {{ calculationMethod === 'item' ? 'Items per pallet' : 'Item dimensions' }}
+      </span>
 
-        <label>Total Pallets</label>
-        <input :value="result.totalPallets" readonly />
-
-        <label>Floor Pallet Positions</label>
-        <input :value="result.floorPositions" readonly />
-
-        <label>Net Pallet Area (m²)</label>
-        <input :value="result.netArea" readonly />
-
-        <label>Gangway Area</label>
-        <input :value="result.gangwayArea" readonly />
-
-        <label>Total Warehouse Area</label>
-        <input :value="result.totalArea" readonly />
+      <div class="metrics">
+        <div class="metric-card">
+          <p class="metric-label">Items per pallet</p>
+          <p class="metric-value">{{ result.itemsPerPallet.toLocaleString('id-ID') }}</p>
+          <p class="metric-unit">items</p>
+        </div>
+        <div class="metric-card">
+          <p class="metric-label">Total pallets</p>
+          <p class="metric-value">{{ result.totalPallets.toLocaleString('id-ID') }}</p>
+          <p class="metric-unit">pallets</p>
+        </div>
+        <div class="metric-card">
+          <p class="metric-label">Floor positions</p>
+          <p class="metric-value">{{ result.floorPositions.toLocaleString('id-ID') }}</p>
+          <p class="metric-unit">positions</p>
+        </div>
       </div>
 
-      <button class="btn try-btn" @click="resetForm">
-        Try Again
-      </button>
+      <p class="section-divider">Warehouse area</p>
+
+      <div class="area-grid">
+        <div class="area-card">
+          <p class="area-label">Net pallet area</p>
+          <p class="area-value">{{ result.netArea.toLocaleString('id-ID') }}</p>
+          <p class="area-unit">m²</p>
+        </div>
+        <div class="area-card">
+          <p class="area-label">Gangway area</p>
+          <p class="area-value">{{ result.gangwayArea.toLocaleString('id-ID') }}</p>
+          <p class="area-unit">m²</p>
+        </div>
+        <div class="area-card area-card--total">
+          <p class="area-label">Total area</p>
+          <p class="area-value">{{ result.totalArea.toLocaleString('id-ID') }}</p>
+          <p class="area-unit">m²</p>
+        </div>
+      </div>
+
+      <button class="btn try-btn" @click="resetForm">Try Again</button>
     </div>
   </div>
 
-  <div class="help-button" @click="$router.push('/storage')">
-    ?
-  </div>
+  <div class="help-button" @click="$router.push('/storage')">?</div>
 </template>
 
 <style scoped>
@@ -318,10 +326,82 @@ select:focus {
 }
 
 .result-section {
+  background: #fff;
   max-width: 600px;
-  margin: 40px auto;
-  padding: 10px;
-  animation: fadeIn .4s ease-in-out;
+  margin: 30px auto;
+  padding: 24px;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+.result-meta-badge {
+  display: inline-block;
+  font-size: 12px;
+  background: #f5f5f5;
+  color: #555;
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin-bottom: 16px;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.metric-card {
+  background: #f8f8f8;
+  padding: 14px;
+  border-radius: 8px;
+  transition: 0.2s;
+}
+
+.metric-card:hover {
+  background: #e9f7f7;
+  transform: translateY(-2px);
+}
+
+.metric-label { font-size: 12px; color: #666; margin-bottom: 6px; }
+.metric-value { font-size: 24px; font-weight: 500; color: #111; line-height: 1; }
+.metric-unit  { font-size: 12px; color: #888; margin-top: 4px; }
+
+.section-divider {
+  font-size: 13px;
+  font-weight: 500;
+  color: #888;
+  margin: 14px 0 10px;
+}
+
+.area-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.area-card {
+  background: #f8f8f8;
+  border-radius: 8px;
+  padding: 14px;
+  border-left: 3px solid #026766;
+  transition: 0.2s;
+}
+
+.area-card:hover {
+  background: #e9f7f7;
+  transform: translateY(-2px);
+}
+
+.area-label { font-size: 12px; color: #666; margin-bottom: 6px; }
+.area-value { font-size: 20px; font-weight: 500; color: #111; }
+.area-unit  { font-size: 11px; color: #888; margin-top: 2px; }
+
+@media (max-width: 500px) {
+  .metrics, .area-grid { grid-template-columns: 1fr 1fr; }
 }
 
 .help-button {
