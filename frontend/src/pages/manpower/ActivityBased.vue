@@ -74,7 +74,7 @@ const resetForm = async () => {
 
 <template>
   <div class="container">
-    <h1>Site management Manpower Planning</h1>
+    <h1>Site Management Manpower Planning</h1>
     <p>Estimate workforce requirements based on total line items (LI)</p>
 
     <div class="card" ref="formSection">
