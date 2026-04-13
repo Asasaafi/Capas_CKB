@@ -34,16 +34,20 @@ const calculatePrediction = async () => {
     alert("Please upload file first")
     return
   }
+
   const formData = new FormData()
   formData.append("file", selectedFile.value)
+
   try {
     const response = await fetch("http://127.0.0.1:8000/predict", {
       method: "POST",
       body: formData
     })
+
     const data = await response.json()
-    console.log("Backend Response:", data)
-    predictions.value = data.predictions
+    predictions.value = data.predictions || data || []
+
+    console.log("FULL DATA:", predictions.value)
     alert("Prediction success!")
   } catch (error) {
     console.error("Upload error:", error)
@@ -51,86 +55,100 @@ const calculatePrediction = async () => {
   }
 }
 
-const goToStorage = () => {
-  router.push("/storage")
-}
-
 const downloadResult = () => {
   if (predictions.value.length === 0) {
     alert("No prediction to download")
     return
   }
+
   const headers = Object.keys(predictions.value[0])
+
   const csvRows = [
     headers.join(','),
     ...predictions.value.map(row =>
-      headers.map(h => `"${row[h]}"`).join(',')
+      headers.map(h => `"${row[h] ?? ''}"`).join(',')
     )
   ]
-  const csvString = csvRows.join('\n')
-  const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' })
+
+  const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' })
   saveAs(blob, 'predictions.csv')
 }
 
-// =========================
-// STORAGE RULES
-// =========================
 const STORAGE_AREA_PER_UNIT = {
-  "SHELVING": 1.2,
-  "CABINET": 1.5,
-  "RACKING": 8.5,
-  "FLOOR": 2.4
-}
-
-const STORAGE_UNIT_LABEL = {
-  "SHELVING": "units",
-  "CABINET": "units",
-  "RACKING": "pallets",
-  "FLOOR": "pallets"
+  SHELVING: 1.2,
+  CABINET: 1.5,
+  RACKING: 8.5,
+  FLOOR: 2.4
 }
 
 const STORAGE_CAPACITY = {
-  "SHELVING": 35,    // bin per shelving
-  "CABINET": 144,    // bin per cabinet
-  "RACKING": 12,     // pallet per racking
-  "FLOOR": 2         // pallet per floor
+  SHELVING: 35,
+  CABINET: 144,
+  RACKING: 12,
+  FLOOR: 2
+}
+
+const STORAGE_PRICE = {
+  CABINET: 27342667,
+  SHELVING: 9434889,
+  RACKING: 490000,
+  FLOOR: 63000,
+  PALLET: 155000
 }
 
 const storageSummary = computed(() => {
+  if (!predictions.value || predictions.value.length === 0) return []
+
   const summary = {}
 
   predictions.value.forEach(item => {
-    const type = String(item["Storage Type"]).toUpperCase()
-    const actual = Number(item["Units Needed"] || 0) // total units/pallet/bin dari backend
-    const cost = Number(item["Total Cost"] || 0)
+    const type = String(item["Storage Type"] || "").toUpperCase()
+    if (!type) return
+
+    const actual =
+      Number(
+        item["Actual Requirement"] ??
+        item["Actual_Requirement"] ??
+        item["actual_requirement"] ??
+        0
+      )
 
     if (!summary[type]) {
-      summary[type] = { storageType: type, totalActual: 0, totalCost: 0 }
+      summary[type] = { storageType: type, totalActual: 0 }
     }
 
     summary[type].totalActual += actual
-    summary[type].totalCost += cost
   })
 
   return Object.values(summary).map(row => {
     const capacity = STORAGE_CAPACITY[row.storageType] ?? 1
     const qtyStorage = Math.ceil(row.totalActual / capacity)
-    const label = STORAGE_UNIT_LABEL[row.storageType] ?? "units"
+
     const areaRate = STORAGE_AREA_PER_UNIT[row.storageType] ?? 1
     const area = parseFloat((qtyStorage * areaRate).toFixed(1))
 
-    let actualReqLabel = ""
-    if (row.storageType === "RACKING" || row.storageType === "FLOOR") {
-      actualReqLabel = `${row.totalActual.toLocaleString("id-ID")} pallet`
-    } else {
-      actualReqLabel = `${row.totalActual.toLocaleString("id-ID")} bin`
+    let totalCost = 0
+
+    if (row.storageType === "CABINET") {
+      totalCost = qtyStorage * STORAGE_PRICE.CABINET
+    } else if (row.storageType === "SHELVING") {
+      totalCost = qtyStorage * STORAGE_PRICE.SHELVING
+    } else if (row.storageType === "RACKING") {
+      totalCost = (qtyStorage * STORAGE_PRICE.RACKING) + (row.totalActual * STORAGE_PRICE.PALLET)
+    } else if (row.storageType === "FLOOR") {
+      totalCost = (qtyStorage * STORAGE_PRICE.FLOOR) + (row.totalActual * STORAGE_PRICE.PALLET)
     }
+
+    const actualReq =
+      (row.storageType === "RACKING" || row.storageType === "FLOOR")
+        ? `${row.totalActual.toLocaleString("id-ID")} pallet`
+        : `${row.totalActual.toLocaleString("id-ID")} bin`
 
     return {
       storageType: row.storageType,
-      actualReq: actualReqLabel,
+      actualReq,
       qtyStorage,
-      totalCost: row.totalCost,
+      totalCost,
       area
     }
   })
@@ -144,198 +162,203 @@ const summaryTotal = computed(() => {
     )
   }
 })
+
+const goToStorage = () => {
+  router.push("/storage")
+}
 </script>
 
 <template>
-  <div class="page-header">
-    <h1>File Upload Calculation</h1>
-    <p class="subtitle">Upload a CSV or Excel file to calculate storage requirements and cost estimation</p>
-  </div>
+  <div class="page-wrapper">
 
-  <div class="upload-container">
-
-    <div class="steps">
-
-      <div class="step-card">
-        <div class="step-header">
-          <div class="icon-box">
-            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-          </div>
-          <div class="step-meta">
-            <span class="step-num">Step 01</span>
-            <span class="step-title">Download Template</span>
-          </div>
-        </div>
-        <p class="step-note">Download the Excel template and use it as your data input format.</p>
-        <button class="primary-btn" @click="downloadTemplate">Download Template</button>
-      </div>
-
-      <div class="step-card">
-        <div class="step-header">
-          <div class="icon-box">
-            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 20h9"/>
-              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-            </svg>
-          </div>
-          <div class="step-meta">
-            <span class="step-num">Step 02</span>
-            <span class="step-title">Fill in Item Data</span>
-          </div>
-        </div>
-        <p class="step-note">Open the template and fill in the required columns: part number, quantity, weight, Growth Indicator, and dimensions.</p>
-      </div>
-
-      <div class="step-card">
-        <div class="step-header">
-          <div class="icon-box">
-            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="17 8 12 3 7 8"/>
-              <line x1="12" y1="3" x2="12" y2="15"/>
-            </svg>
-          </div>
-          <div class="step-meta">
-            <span class="step-num">Step 03</span>
-            <span class="step-title">Upload File</span>
-          </div>
-        </div>
-        <p class="step-note">Select your completed file and click Calculate to run the prediction.</p>
-        <button class="primary-btn" @click="openBrowser">Browse File</button>
-        <input
-          type="file"
-          ref="fileInput"
-          style="display: none"
-          accept=".csv,.xlsx"
-          @change="handleFileChange"
-        />
-      </div>
-
+    <div class="page-header">
+      <h1>File Upload Calculation</h1>
+      <p class="subtitle">Upload a CSV or Excel file to calculate storage requirements and cost estimation</p>
     </div>
 
-    <div class="upload-box">
-      <div class="file-info">
-        <div class="file-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#026766" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14 2 14 8 20 8"/>
+    <div class="upload-container">
+
+      <div class="steps">
+
+        <div class="step-card">
+          <div class="step-header">
+            <div class="icon-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+            </div>
+            <div class="step-meta">
+              <span class="step-num">Step 01</span>
+              <span class="step-title">Download Template</span>
+            </div>
+          </div>
+          <p class="step-note">Download the Excel template and use it as your data input format.</p>
+          <button class="primary-btn" @click="downloadTemplate">Download Template</button>
+        </div>
+
+        <div class="step-card">
+          <div class="step-header">
+            <div class="icon-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 20h9"/>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+              </svg>
+            </div>
+            <div class="step-meta">
+              <span class="step-num">Step 02</span>
+              <span class="step-title">Fill in Item Data</span>
+            </div>
+          </div>
+          <p class="step-note">Open the template and fill in the required columns: part number, quantity, weight, Growth Indicator, and dimensions.</p>
+        </div>
+
+        <div class="step-card">
+          <div class="step-header">
+            <div class="icon-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+            </div>
+            <div class="step-meta">
+              <span class="step-num">Step 03</span>
+              <span class="step-title">Upload File</span>
+            </div>
+          </div>
+          <p class="step-note">Select your completed file and click Calculate to run the prediction.</p>
+          <button class="primary-btn" @click="openBrowser">Browse File</button>
+          <input
+            type="file"
+            ref="fileInput"
+            style="display: none"
+            accept=".csv,.xlsx"
+            @change="handleFileChange"
+          />
+        </div>
+
+      </div>
+
+      <div class="upload-box">
+        <div class="file-info">
+          <div class="file-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#026766" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+          </div>
+          <div>
+            <div class="file-name">{{ selectedFileName ?? 'No file uploaded yet' }}</div>
+            <div class="file-hint">Accepted formats: .csv, .xlsx</div>
+          </div>
+        </div>
+        <button class="calc-btn" @click="calculatePrediction">Calculate Prediction</button>
+      </div>
+
+      <div v-if="predictions.length > 0" class="success-box">
+        <div class="success-text">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#0f6e56" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
           </svg>
+          File processed successfully! {{ predictions.length }} items have been calculated.
         </div>
-        <div>
-          <div class="file-name">{{ selectedFileName ?? 'No file uploaded yet' }}</div>
-          <div class="file-hint">Accepted formats: .csv, .xlsx</div>
+        <button class="dl-btn" @click="downloadResult">Download Result</button>
+      </div>
+
+      <div v-if="storageSummary.length > 0" class="section">
+        <p class="section-title">Storage Requirement Summary (Cost &amp; Area)</p>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Storage Type</th>
+                <th>Actual Requirement</th>
+                <th>Qty Storage</th>
+                <th>Total Cost</th>
+                <th>Area (m²)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(row, index) in storageSummary" :key="index">
+                <td>
+                  <span class="type-badge" :class="row.storageType.toLowerCase()">
+                    {{ row.storageType }}
+                  </span>
+                </td>
+                <td>{{ row.actualReq }}</td>
+                <td>{{ row.qtyStorage }}</td>
+                <td>Rp {{ row.totalCost.toLocaleString("id-ID") }}</td>
+                <td>{{ row.area }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="summary-total">
+          <div class="summary-total-title">Estimation Summary</div>
+          <div class="summary-total-grid">
+            <div class="summary-total-item">
+              <span class="summary-label">Total Cost</span>
+              <span class="summary-value">Rp {{ summaryTotal.totalCost.toLocaleString("id-ID") }}</span>
+            </div>
+            <div class="summary-total-item">
+              <span class="summary-label">Total Area</span>
+              <span class="summary-value">{{ summaryTotal.totalArea }} m²</span>
+            </div>
+          </div>
         </div>
       </div>
-      <button class="calc-btn" @click="calculatePrediction">Calculate Prediction</button>
+
     </div>
 
-    <div v-if="predictions.length > 0" class="success-box">
-      <div class="success-text">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#0f6e56" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="20 6 9 17 4 12"/>
-        </svg>
-        File processed successfully! {{ predictions.length }} items have been calculated.
-      </div>
-      <button class="dl-btn" @click="downloadResult">Download Result</button>
-    </div>
-
-    <!-- ===================== SUMMARY TABLE ===================== -->
-    <div v-if="storageSummary.length > 0" class="section">
-      <p class="section-title">Storage Requirement Summary (Cost &amp; Area)</p>
-      <div class="tbl-wrap">
+    <div v-if="predictions.length > 0" class="preview-section">
+      <p class="section-title">
+        Preview Result
+        <span class="section-sub">(showing first 20 rows)</span>
+      </p>
+      <div class="preview-scroll">
         <table>
           <thead>
             <tr>
+              <th>Part Number</th>
+              <th>Quantity</th>
+              <th>Weight (kg)</th>
+              <th>Growth Indicator</th>
+              <th>Dimension (cm)</th>
               <th>Storage Type</th>
-              <th>Actual Requirement</th>
-              <th>Qty Storage</th>
+              <th>Level</th>
+              <th>Units Needed</th>
               <th>Total Cost</th>
-              <th>Area (m²)</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(row, index) in storageSummary" :key="index">
-              <td>
-                <span class="type-badge" :class="row.storageType.toLowerCase()">
-                  {{ row.storageType }}
-                </span>
-              </td>
-              <td>{{ row.actualReq }}</td>
-              <td>{{ row.qtyStorage }}</td>
-              <td>Rp {{ row.totalCost.toLocaleString("id-ID") }}</td>
-              <td>{{ row.area }}</td>
+            <tr v-for="(row, index) in predictions.slice(0, 20)" :key="index">
+              <td>{{ row["Part Number"] }}</td>
+              <td>{{ row["Quantity"] }}</td>
+              <td>{{ row["Weight (kg)"] }}</td>
+              <td>{{ row["Growth Indicator"] }}</td>
+              <td>{{ row["Dimension (cm3)"] }}</td>
+              <td>{{ row["Storage Type"] }}</td>
+              <td>{{ row["Level"] }}</td>
+              <td>{{ row["Units Needed"] }}</td>
+              <td>{{ row["Total Cost"] }}</td>
             </tr>
           </tbody>
         </table>
       </div>
-
-      <div class="summary-total">
-        <div class="summary-total-title">Estimation Summary</div>
-        <div class="summary-total-grid">
-          <div class="summary-total-item">
-            <span class="summary-label">Total Cost</span>
-            <span class="summary-value">Rp {{ summaryTotal.totalCost.toLocaleString("id-ID") }}</span>
-          </div>
-          <div class="summary-total-item">
-            <span class="summary-label">Total Area</span>
-            <span class="summary-value">{{ summaryTotal.totalArea }} m²</span>
-          </div>
-        </div>
-      </div>
     </div>
 
+    <div class="help-button" @click="goToStorage">?</div>
+
   </div>
-
-  <div v-if="predictions.length > 0" class="preview-section">
-    <p class="section-title">
-      Preview Result
-      <span class="section-sub">(showing first 20 rows)</span>
-    </p>
-    <div class="preview-scroll">
-      <table>
-        <thead>
-          <tr>
-            <th>Part Number</th>
-            <th>Quantity</th>
-            <th>Weight (kg)</th>
-            <th>Growth Indicator</th>
-            <th>Dimension (cm)</th>
-            <th>Storage Type</th>
-            <th>Level</th>
-            <th>Units Needed</th>
-            <th>Total Cost</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(row, index) in predictions.slice(0, 20)" :key="index">
-            <td>{{ row["Part Number"] }}</td>
-            <td>{{ row["Quantity"] }}</td>
-            <td>{{ row["Weight (kg)"] }}</td>
-            <td>{{ row["Growth Indicator"] }}</td>
-            <td>{{ row["Dimension (cm3)"] }}</td>
-            <td>{{ row["Storage Type"] }}</td>
-            <td>{{ row["Level"] }}</td>
-            <td>{{ row["Units Needed"] }}</td>
-            <td>{{ row["Total Cost"] }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <div class="help-button" @click="goToStorage">?</div>
-
 </template>
 
 <style scoped>
-.upload-container {
-  padding: 0 40px 32px;
-  max-width: 960px;
-  margin: 0 auto;
+.page-wrapper {
+  min-width: 320px;
+  overflow-x: auto;
 }
 
 .page-header {
@@ -343,9 +366,6 @@ const summaryTotal = computed(() => {
 }
 
 h1 {
-  font-size: 24px;
-  font-weight: 700;
-  color: #111;
   margin-bottom: 8px;
 }
 
@@ -360,9 +380,15 @@ p {
   margin-bottom: 28px;
 }
 
+.upload-container {
+  padding: 0 40px 32px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
 .steps {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(200px, 1fr));
   gap: 16px;
   margin-bottom: 20px;
 }
@@ -472,6 +498,7 @@ p {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
 }
 
 .file-icon {
@@ -495,6 +522,9 @@ p {
   font-size: 13px;
   font-weight: 600;
   color: #444;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .file-hint {
@@ -531,6 +561,8 @@ p {
   border-radius: 12px;
   padding: 12px 20px;
   margin-bottom: 20px;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .success-text {
@@ -585,20 +617,16 @@ p {
   margin-left: 6px;
 }
 
-.tbl-wrap,
-.preview-scroll {
+.tbl-wrap {
   border: 1px solid #e8e8e8;
   border-radius: 12px;
-  overflow: hidden;
-}
-
-.preview-scroll {
-  max-height: 280px;
-  overflow-y: auto;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 table {
   width: 100%;
+  min-width: 480px;
   border-collapse: collapse;
   font-size: 13px;
 }
@@ -614,11 +642,7 @@ thead th {
   font-weight: 500;
   font-size: 12px;
   letter-spacing: 0.3px;
-}
-
-.preview-scroll thead th {
-  position: sticky;
-  top: 0;
+  white-space: nowrap;
 }
 
 tbody td {
@@ -626,6 +650,7 @@ tbody td {
   border-bottom: 1px solid #f0f0f0;
   color: #444;
   text-align: center;
+  white-space: nowrap;
 }
 
 tbody tr:last-child td {
@@ -636,7 +661,6 @@ tbody tr:hover td {
   background: #f8fffe;
 }
 
-/* Type badge */
 .type-badge {
   display: inline-block;
   padding: 3px 10px;
@@ -652,7 +676,6 @@ tbody tr:hover td {
 .type-badge.racking   { background: #fff3e0; color: #e07b00; }
 .type-badge.floor     { background: #fce8e8; color: #c0392b; }
 
-/* Summary Total */
 .summary-total {
   margin-top: 12px;
   background: #f8fffe;
@@ -697,6 +720,25 @@ tbody tr:hover td {
   padding: 0 40px 32px;
   max-width: 960px;
   margin: 0 auto;
+}
+
+.preview-scroll {
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 280px;
+}
+
+.preview-scroll table {
+  min-width: 820px;
+}
+
+.preview-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #026766;
 }
 
 .help-button {
