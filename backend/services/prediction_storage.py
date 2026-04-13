@@ -3,7 +3,7 @@ import numpy as np
 import joblib
 import math
 
-model_bundle = joblib.load("model/model_3.pkl")
+model_bundle = joblib.load("model/model_2.pkl")
 model = model_bundle["model"]
 encoder = model_bundle["encoder"]
 features = model_bundle["features"]
@@ -50,7 +50,7 @@ STORAGE_RULES = {
 
 STORAGE_PRICE = {
     "CABINET": 27342667,
-    "SHELVING": 171000000,
+    "SHELVING": 9434889,
     "RACKING": 490000,
     "FLOOR": 63000,
     "PALLET": 155000
@@ -160,6 +160,12 @@ def predict_storage(df: pd.DataFrame):
         df["Height (cm)"]
     ) / 1_000_000
 
+    df["Volume_cm3"] = (
+        df["Length (cm)"] *
+        df["Width (cm)"] *
+        df["Height (cm)"]
+    )
+
     df["Total_Volume_m3"] = df["Volume_m3"] * df["Quantity"]
     df["Total_Weight_kg"] = df["Unit Weight (kg)"] * df["Quantity"]
 
@@ -187,14 +193,27 @@ def predict_storage(df: pd.DataFrame):
 
         level, units, cost = calculate_cost(storage, vol_per_item, total_vol)
 
+        if storage in ["CABINET", "SHELVING"]:
+            if vol_per_item > 0:
+                actual_req = math.ceil(total_vol / vol_per_item)
+            else:
+                actual_req = 0
+            unit_type = "bin"
+        else:
+            actual_req = math.ceil(total_vol / 1.44)
+            unit_type = "pallet"
+
         results.append({
             "Part Number": str(df.iloc[i]["Part Number"]),
             "Quantity": int(df.iloc[i]["Quantity"]),
             "Weight (kg)": float(df.iloc[i]["Unit Weight (kg)"]),
             "Growth Indicator": str(df.iloc[i]["Growth Indicator"]),
+            "Dimension (cm3)": float(df.iloc[i]["Volume_cm3"]),
             "Volume per Item (m3)": float(round(vol_per_item, 4)),
             "Storage Type": str(storage),
             "Level": str(level),
+            "Actual Requirement": int(actual_req),
+            "Unit Type": unit_type,
             "Units Needed": int(units),
             "Total Cost": float(cost)
         })
