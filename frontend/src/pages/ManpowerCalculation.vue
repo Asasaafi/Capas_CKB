@@ -47,13 +47,13 @@ const goToCBM = () => router.push("/manpower/cbm")
 
         <h3>LI-Based Calculation</h3>
         <p>
-          Estimate manpower requirements based on <strong>Line Items (LI)</strong> handled in warehouse operations.
-          This method supports two modes:
+            Estimate manpower requirements based on <strong>Line Items (LI)</strong> handled in warehouse operations.
+            This method supports two modes:
         </p>
 
         <ul class="card-features">
-          <li><strong>Per Day:</strong> Rule-based calculation combined with regression model for daily inbound & outbound LI.</li>
-          <li><strong>Per Month:</strong> Regression model trained on historical monthly LI vs manpower data.</li>
+          <li>Per Day: Regression model using rule-based synthetic data for daily inbound & outbound LI.</li>
+          <li>Per Month: Regression model trained on historical monthly LI vs manpower data.</li>
           <li>Suitable for both quick daily estimation and monthly workforce planning.</li>
         </ul>
 
@@ -162,9 +162,9 @@ const goToCBM = () => router.push("/manpower/cbm")
         </p>
 
         <ul class="card-features">
-          <li>CBM-based manpower estimation</li>
-          <li>Based on cubic volume load</li>
-          <li>Suitable for storage planning</li>
+          <li>Regression-based manpower estimation</li>
+          <li>Uses total inbound + outbound CBM volume</li>
+          <li>Suitable for storage & logistics planning</li>
         </ul>
 
         <span class="card-action">
