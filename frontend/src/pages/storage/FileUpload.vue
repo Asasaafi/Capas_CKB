@@ -39,9 +39,12 @@ const calculatePrediction = async () => {
   formData.append("file", selectedFile.value)
 
   try {
-    const response = await fetch("http://127.0.0.1:8000/predict", {
+    const response = await fetch("https://silverless-janae-unwaning.ngrok-free.dev/predict", {
       method: "POST",
-      body: formData
+      body: formData,
+      headers: {
+        "ngrok-skip-browser-warning": "true"
+      }
     })
 
     const data = await response.json()
