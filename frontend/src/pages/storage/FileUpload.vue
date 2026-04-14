@@ -328,7 +328,6 @@ const goToStorage = () => {
               <th>Growth Indicator</th>
               <th>Dimension (cm)</th>
               <th>Storage Type</th>
-              <th>Level</th>
               <th>Units Needed</th>
               <th>Total Cost</th>
             </tr>
@@ -341,7 +340,6 @@ const goToStorage = () => {
               <td>{{ row["Growth Indicator"] }}</td>
               <td>{{ row["Dimension (cm3)"] }}</td>
               <td>{{ row["Storage Type"] }}</td>
-              <td>{{ row["Level"] }}</td>
               <td>{{ row["Units Needed"] }}</td>
               <td>{{ row["Total Cost"] }}</td>
             </tr>
