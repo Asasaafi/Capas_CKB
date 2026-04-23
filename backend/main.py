@@ -7,13 +7,16 @@ from services.prediction_storage import predict_storage
 app = FastAPI(
     title="Storage Prediction API",
     description="API untuk memprediksi storage dan biaya berdasarkan CSV/XLSX input",
-    version="1.0.0"
+    version="1.0.0",
+    root_path="/api"
 )
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
+        "https://capas.ckblogistics.id",
+        "https://ckblogistics.id",
         "https://darling-sfogliatella-ef24f0.netlify.app"
     ],
     allow_credentials=True,
@@ -23,7 +26,7 @@ app.add_middleware(
 
 @app.get("/")
 def root():
-    return {"message": "Storage Prediction API Running"}
+    return {"message": "Storage Prediction API Running on CKB Production"}
 
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
