@@ -39,7 +39,7 @@ const calculatePrediction = async () => {
   formData.append("file", selectedFile.value)
 
   try {
-    const response = await fetch("https://silverless-janae-unwaning.ngrok-free.dev/predict", {
+    const response = await fetch("https://capas.ckblogistics.id/api/predict", {
       method: "POST",
       body: formData,
       headers: {
